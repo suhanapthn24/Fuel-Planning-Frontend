@@ -21,7 +21,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:8000/register", formData);
+      await axios.post("http://127.0.0.1:8000/users/register", formData);
       alert("Registration successful!");
       navigate("/"); // Navigate to login
     } catch (error) {

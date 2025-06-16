@@ -1,53 +1,24 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export function TripsTable() {
-  const trips = [
-    {
-      id: "TRP-2023-001",
-      driver: "Sophia Clark",
-      route: "Depot A → Depot B",
-      status: "Completed",
-      eta: "N/A",
-      start: "2023-11-15 08:00",
-      end: "2023-11-15 12:00",
-    },
-    {
-      id: "TRP-2023-002",
-      driver: "Ethan Miller",
-      route: "Depot B → Depot C",
-      status: "Active",
-      eta: "2023-11-16 14:30",
-      start: "2023-11-15 08:00",
-      end: "N/A",
-    },
-    {
-      id: "TRP-2023-003",
-      driver: "Olivia Davis",
-      route: "Depot C → Depot A",
-      status: "Delayed",
-      eta: "2023-11-17 16:00",
-      start: "2023-11-15 09:00",
-      end: "2023-11-18 15:00",
-    },
-    {
-      id: "TRP-2023-004",
-      driver: "Liam Wilson",
-      route: "Depot A → Depot C",
-      status: "Completed",
-      eta: "N/A",
-      start: "2023-11-15 09:00",
-      end: "N/A",
-    },
-    {
-      id: "TRP-2023-004",
-      driver: "Liam Wilson",
-      route: "Depot A → Depot C",
-      status: "Active",
-      eta: "N/A",
-      start: "2023-11-15 09:00",
-      end: "N/A",
-    },
-  ];
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/trips") // Replace with your actual backend URL
+      .then((response) => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.json();
+      })
+      .then((data) => {
+        setTrips(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching trips:", error);
+        setLoading(false);
+      });
+  }, []);
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -61,6 +32,8 @@ export function TripsTable() {
         return "text-sm";
     }
   };
+
+  if (loading) return <div className="text-center py-4">Loading trips...</div>;
 
   return (
     <div className="overflow-x-auto bg-white rounded-xl shadow">
@@ -85,11 +58,11 @@ export function TripsTable() {
               <td className="px-4 py-3">
                 <span className={getStatusStyle(trip.status)}>{trip.status}</span>
               </td>
-              <td className="px-4 py-3">{trip.eta}</td>
+              <td className="px-4 py-3">{trip.eta || "N/A"}</td>
               <td className="px-4 py-3">
                 {trip.start}
                 <br />
-                {trip.end}
+                {trip.end || "N/A"}
               </td>
               <td className="px-4 py-3 space-x-2">
                 <button className="text-blue-600 hover:underline">View</button>
