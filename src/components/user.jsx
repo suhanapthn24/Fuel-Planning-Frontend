@@ -1,173 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './sidebar';
-import Navbar from './navbar';
-import axios from 'axios';
+import React, { useState } from 'react';
+import Sidebar from './Admin/sidebar';
+import Navbar from './Admin/navbar';
 
-const User = () => {
-  const [userInfo, setUserInfo] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    role: '',
-  });
+const dummyUsers = [
+  { name: 'Olivia Davis', email: 'Olivia.Davis@example.com', role: 'Driver', status: 'Active' },
+  { name: 'Ethan Miller', email: 'Ethan.Miller@example.com', role: 'Driver', status: 'Active' },
+  { name: 'Sophia Clark', email: 'Sophia.Clark@example.com', role: 'Driver', status: 'Inactive' },
+  { name: 'Liam Wilson', email: 'Liam.Wilson@example.com', role: 'Driver', status: 'Active' },
+  { name: 'Jack Brown', email: 'Jack.Brown@example.com', role: 'Driver', status: 'Active' },
+];
 
-  const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState(userInfo);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
+export default function User() {
+  const [activeTab, setActiveTab] = useState('Drivers');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const userEmail = localStorage.getItem('userEmail');
-
-  useEffect(() => {
-    if (userEmail) {
-      axios.get(`http://127.0.0.1:8000/user/${userEmail}`)
-        .then((res) => {
-          setUserInfo(res.data);
-          setForm(res.data);
-        })
-        .catch((err) => {
-          console.error("Error fetching user:", err);
-        });
-    }
-  }, [userEmail]);
-
-  const handleEditToggle = () => {
-    setEditMode(!editMode);
-    setForm(userInfo);
-  };
-
-  const handleSave = () => {
-    axios.put(`http://127.0.0.1:8000/user/${userEmail}`, form)
-      .then(() => {
-        setUserInfo(form);
-        setEditMode(false);
-      })
-      .catch((err) => {
-        console.error("Error updating user:", err);
-      });
-  };
-
-  const handlePasswordReset = () => {
-    alert(`Password reset to: ${newPassword}`);
-    setNewPassword('');
-    setShowPasswordReset(false);
-  };
+  const filteredUsers = dummyUsers.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Navbar at the top */}
-      <div className="h-16 w-full bg-white shadow z-10">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Navbar */}
+      <div className="w-full">
         <Navbar />
       </div>
 
-      {/* Main content area below navbar */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar on the left */}
-        <div className="w-64 bg-white shadow h-full overflow-y-auto">
+      {/* Sidebar + Content */}
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <div className="w-64 bg-white shadow h-full">
           <Sidebar />
         </div>
 
-        {/* Content to the right of sidebar */}
-        <main className="flex-1 overflow-y-auto p-8 bg-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">User Profile</h2>
+        {/* Main Content */}
+        <main className="flex-1 p-10">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">User</h2>
 
-          <div className="bg-white p-6 rounded-xl shadow max-w-2xl">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Name</label>
-                <input
-                  type="text"
-                  className="w-full border px-4 py-2 rounded-lg bg-gray-50"
-                  disabled={!editMode}
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
+          {/* Search bar */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search By Name"
+              className="px-4 py-2 border rounded-full bg-white w-full sm:w-80"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full border px-4 py-2 rounded-lg bg-gray-50"
-                  disabled
-                  value={form.email}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Phone</label>
-                <input
-                  type="text"
-                  className="w-full border px-4 py-2 rounded-lg bg-gray-50"
-                  disabled={!editMode}
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Role</label>
-                <input
-                  type="text"
-                  className="w-full border px-4 py-2 rounded-lg bg-gray-50"
-                  disabled={!editMode}
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-between">
-              <div>
-                <button
-                  onClick={handleEditToggle}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                  {editMode ? 'Cancel' : 'Edit Profile'}
-                </button>
-
-                {editMode && (
-                  <button
-                    onClick={handleSave}
-                    className="ml-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                  >
-                    Save
-                  </button>
-                )}
-              </div>
-
+          {/* Tabs BELOW search */}
+          <div className="flex space-x-2 mb-6">
+            {['Drivers', 'Depots', 'Stations'].map((tab) => (
               <button
-                onClick={() => setShowPasswordReset(true)}
-                className="text-red-600 hover:underline"
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-full font-medium text-sm ${
+                  activeTab === tab ? 'bg-red-600 text-white' : 'bg-black text-white'
+                }`}
               >
-                Reset Password
+                {tab}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {showPasswordReset && (
-              <div className="mt-6 border-t pt-4">
-                <label className="block text-gray-600 text-sm mb-1">New Password</label>
-                <input
-                  type="password"
-                  className="w-full border px-4 py-2 rounded-lg bg-gray-50 mb-3"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <div className="flex justify-end">
-                  <button
-                    onClick={handlePasswordReset}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-500"
-                  >
-                    Confirm Reset
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <table className="min-w-full table-auto">
+              <thead className="bg-gray-100 text-left text-sm text-gray-600">
+                <tr>
+                  <th className="p-4 font-semibold">Name</th>
+                  <th className="p-4 font-semibold">Email Address</th>
+                  <th className="p-4 font-semibold">Role</th>
+                  <th className="p-4 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user, idx) => (
+                  <tr key={idx} className="border-t text-sm text-gray-700 hover:bg-gray-50">
+                    <td className="p-4 font-medium text-gray-800">{user.name}</td>
+                    <td className="p-4">{user.email}</td>
+                    <td className="p-4">{user.role}</td>
+                    <td className="p-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium text-white ${
+                          user.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                      >
+                        {user.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </main>
       </div>
     </div>
   );
-};
-
-export default User;
+}

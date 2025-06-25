@@ -21,12 +21,27 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:8000/users/register", formData);
+      await axios.post("http://localhost:8000/auth/register", {
+    username: formData.name,
+    email: formData.email,
+    user_phone: formData.phone,
+    password: formData.password,
+    role: formData.role.charAt(0).toUpperCase() + formData.role.slice(1), 
+  });
       alert("Registration successful!");
-      navigate("/"); // Navigate to login
+      navigate("/"); 
     } catch (error) {
-      console.error(error);
-      alert("Registration failed");
+      console.error("Validation error detail:", error.response.data.detail);
+      const detail = error.response?.data?.detail;
+
+      if (Array.isArray(detail)) {
+        const messages = detail.map((d) => `• ${d.msg}`).join("\n");
+        alert("Validation Errors:\n" + messages);
+      } else if (typeof detail === "string") {
+        alert("Error: " + detail);
+      } else {
+        alert("Registration failed. Please check your inputs.");
+      }
     }
   };
 
@@ -79,8 +94,9 @@ export default function Register() {
               required
             >
               <option value="">Select Role</option>
-              <option value="admin">Admin</option>
-              <option value="driver">Driver</option>
+              <option value="Admin">Admin</option>
+              <option value="Station">Station</option>
+              <option value="Depot">Depot</option>
             </select>
           </div>
 

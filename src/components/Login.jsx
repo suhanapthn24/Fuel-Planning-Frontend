@@ -17,18 +17,25 @@ export default function Login() {
       return;
     }
 
+    const formData = new URLSearchParams();
+    formData.append("username", email);   // FastAPI uses 'username' field for OAuth2
+    formData.append("password", password);
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/login", {
+      const response = await fetch("http://127.0.0.1:8000/auth/token", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData,
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log("Login successful:", data);
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('role', role);
+        localStorage.setItem("userEmail", email);
+        localStorage.setItem("role", role);
+        localStorage.setItem("access_token", data.access_token);
         navigate("/dashboard");
       } else {
         const err = await response.json();
@@ -36,6 +43,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error("Login error:", err);
+      alert("Something went wrong while logging in.");
     }
   };
 
@@ -90,7 +98,8 @@ export default function Login() {
             <select className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-400">
               <option value="">Role</option>
               <option value="admin">Admin</option>
-              <option value="manager">Driver</option>
+              <option value="station">Station</option>
+              <option value="depot">Depot</option>
             </select>
           </div>
 

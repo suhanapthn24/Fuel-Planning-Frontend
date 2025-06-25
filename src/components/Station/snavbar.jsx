@@ -1,0 +1,42 @@
+import React from "react";
+import logo from "../assests/taj-logo.png";
+import { BellIcon } from "@heroicons/react/24/solid";
+import { Link } from "react-router-dom";
+
+export default function Navbar() {
+  return (
+    <div className="w-full bg-white shadow-sm px-6 py-3 flex justify-between items-center border-b fixed top-0 left-0 right-0 z-50">
+      {/* Left: Logo + Header */}
+      <div className="flex items-center gap-8">
+        <img src={logo} alt="Taj Gasoline" className="h-12" />
+
+        {/* Header text */}
+        <h1 className="text-lg font-bold text-gray-800">
+          Station Dashboard
+        </h1>
+      </div>
+
+      {/* Right: Search + Bell + Avatar */}
+      <div className="flex items-center gap-4">
+        <div className="bg-gray-100 px-3 py-1 rounded-full flex items-center">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="bg-transparent outline-none px-2 text-sm"
+          />
+        </div>
+
+        {/* Bell icon wrapped in Link to notifications */}
+        <Link to="/snotifications" className="text-gray-700 hover:text-red-600">
+          <BellIcon className="h-6 w-6" />
+        </Link>
+
+        <img
+          src=""
+          alt="User"
+          className="h-8 w-8 rounded-full border"
+        />
+      </div>
+    </div>
+  );
+}
