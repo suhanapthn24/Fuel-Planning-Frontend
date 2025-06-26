@@ -6,36 +6,84 @@ import Navbar from './snavbar';
 export default function StationExceptions() {
   const [exceptions, setExceptions] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null); // null → create, number → update
   const [formData, setFormData] = useState({
-    type: '',
-    tripId: '',
-    timestamp: '',
-    status: 'Pending',
+    exception_type: '',
+    trip_id: '',
+    date_stamp: '',
+    exception_status: 'pending',
   });
   const [error, setError] = useState('');
 
   useEffect(() => {
-    axios.get("http://localhost:8000/exceptions/")
-      .then(res => setExceptions(res.data))
-      .catch(err => console.error('Fetch failed:', err));
+    axios
+      .get('http://localhost:8000/exceptions/')
+      .then((res) => setExceptions(res.data))
+      .catch((err) => console.error('Fetch failed:', err));
   }, []);
 
-  const handleRaiseException = () => {
-    if (!formData.type || !formData.tripId || !formData.timestamp) {
+  const resetForm = () => {
+    setFormData({
+      exception_type: '',
+      trip_id: '',
+      date_stamp: '',
+      exception_status: 'pending',
+    });
+    setEditingId(null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const openEditModal = (ex) => {
+    setEditingId(ex.exception_id);
+    setFormData({
+      exception_type: ex.exception_type,
+      trip_id: ex.trip_id,
+      date_stamp: new Date(ex.date_stamp).toISOString().slice(0, 16), // yyyy‑MM‑ddTHH:mm
+      exception_status: ex.exception_status,
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = () => {
+    const { exception_type, trip_id, date_stamp } = formData;
+    if (!exception_type || !trip_id || !date_stamp) {
       setError('All fields are required.');
       return;
     }
 
-    axios.post('http://localhost:8000/exceptions/', formData)
-      .then(res => {
-        setExceptions([...exceptions, res.data]);
+    const payload = {
+      ...formData,
+      date_stamp: new Date(date_stamp).toISOString(), // ensure ISO
+    };
+
+    // Decide between POST (create) and PATCH (update)
+    const request = editingId
+      ? axios.patch(`http://127.0.0.1:8000/exceptions/${editingId}`, payload)
+      : axios.post('http://127.0.0.1:8000/exceptions/', payload);
+
+    request
+      .then((res) => {
+        let updated;
+        if (editingId) {
+          // replace item in list
+          updated = exceptions.map((ex) =>
+            ex.exception_id === editingId ? res.data : ex
+          );
+        } else {
+          updated = [...exceptions, res.data];
+        }
+        setExceptions(updated);
         setShowModal(false);
-        setFormData({ type: '', tripId: '', timestamp: '', status: 'Pending' });
+        resetForm();
         setError('');
       })
-      .catch(err => {
-        console.error('Post failed:', err);
-        setError('Failed to raise exception.');
+      .catch((err) => {
+        console.error('Submit failed:', err);
+        setError('Failed to save exception.');
       });
   };
 
@@ -48,26 +96,30 @@ export default function StationExceptions() {
 
   return (
     <div className="h-screen flex flex-col" onKeyDown={handleKeyDown} tabIndex={0}>
+      {/* Top bar */}
       <div className="h-16 w-full bg-white shadow z-10">
         <Navbar />
       </div>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
         <div className="w-64 bg-white shadow h-full overflow-y-auto">
           <Sidebar />
         </div>
 
+        {/* Main content */}
         <main className="flex-1 overflow-y-auto p-8 bg-gray-100">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Active Exceptions</h2>
             <button
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-              onClick={() => setShowModal(true)}
+              onClick={openCreateModal}
             >
               Raise Exception
             </button>
           </div>
 
+          {/* Exceptions table */}
           <div className="bg-white rounded-xl shadow overflow-x-auto">
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gray-100 text-gray-700 font-semibold">
@@ -80,26 +132,31 @@ export default function StationExceptions() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {exceptions.map((ex, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">{ex.type}</td>
-                    <td className="px-6 py-4">{ex.tripId}</td>
-                    <td className="px-6 py-4">{new Date(ex.timestamp).toLocaleString()}</td>
+                {exceptions.map((ex) => (
+                  <tr key={ex.exception_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{ex.exception_type}</td>
+                    <td className="px-6 py-4">{ex.trip_id}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        ex.status === 'Pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {ex.status}
+                      {new Date(ex.date_stamp).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          ex.exception_status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {ex.exception_status.charAt(0).toUpperCase() + ex.exception_status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-blue-600 space-x-2 text-sm">
-                      <button className="hover:underline">Acknowledge</button>
-                      <span>|</span>
-                      <button className="hover:underline">Reassign Driver</button>
-                      <span>|</span>
-                      <button className="hover:underline">Notify Depot</button>
+                      <button
+                        className="hover:underline"
+                        onClick={() => openEditModal(ex)}
+                      >
+                        Update
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -107,43 +164,78 @@ export default function StationExceptions() {
             </table>
           </div>
 
-          {/* Modal */}
+          {/* Modal – create / edit */}
           {showModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-96 relative">
+                {/* Close button */}
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                    setError('');
+                  }}
                   className="absolute top-2 right-2 text-gray-500 hover:text-black text-lg font-bold"
                 >
                   ×
                 </button>
-                <h3 className="text-lg font-semibold mb-4">Raise New Exception</h3>
+
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingId ? 'Edit Exception' : 'Raise New Exception'}
+                </h3>
                 {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-                <input
-                  type="text"
-                  placeholder="Exception Type"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full mb-3 px-3 py-2 border rounded"
-                />
+
+                {/* Exception Type */}
+                <select
+                  value={formData.exception_type}
+                  onChange={(e) => setFormData({ ...formData, exception_type: e.target.value })}
+                  className="w-full mb-3 px-3 py-2 border rounded bg-white"
+                >
+                  <option value="" disabled>
+                    Select Exception Type
+                  </option>
+                  <option value="low fuel">Low Fuel</option>
+                  <option value="route deviation">Route Deviation</option>
+                  <option value="excessive speed">Excessive Speed</option>
+                  <option value="unscheduled">Unscheduled</option>
+                  <option value="other">Other</option>
+                </select>
+
+                {/* Trip ID */}
                 <input
                   type="text"
                   placeholder="Trip ID"
-                  value={formData.tripId}
-                  onChange={(e) => setFormData({ ...formData, tripId: e.target.value })}
+                  value={formData.trip_id}
+                  onChange={(e) => setFormData({ ...formData, trip_id: e.target.value })}
                   className="w-full mb-3 px-3 py-2 border rounded"
                 />
+
+                {/* Date Time */}
                 <input
                   type="datetime-local"
-                  value={formData.timestamp}
-                  onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
+                  value={formData.date_stamp}
+                  onChange={(e) => setFormData({ ...formData, date_stamp: e.target.value })}
                   className="w-full mb-3 px-3 py-2 border rounded"
                 />
+
+                {/* Status dropdown (only in edit mode) */}
+                {editingId && (
+                  <select
+                    value={formData.exception_status}
+                    onChange={(e) => setFormData({ ...formData, exception_status: e.target.value })}
+                    className="w-full mb-3 px-3 py-2 border rounded bg-white"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="acknowledged">Acknowledged</option>
+                  </select>
+                )}
+
+                {/* Submit */}
                 <button
-                  onClick={handleRaiseException}
+                  onClick={handleSubmit}
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded"
                 >
-                  Submit
+                  {editingId ? 'Save Changes' : 'Submit'}
                 </button>
               </div>
             </div>

@@ -21,12 +21,16 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/auth/register", {
-    username: formData.name,
-    email: formData.email,
-    user_phone: formData.phone,
+      await axios.post("http://127.0.0.1:8000/auth/register", {
+    username: formData.name.trim(),
+    email: formData.email.trim(),
+    user_phone: formData.phone.trim(),
     password: formData.password,
-    role: formData.role.charAt(0).toUpperCase() + formData.role.slice(1), 
+    role: formData.role, 
+  }, {
+    headers: {
+      "Content-Type": "application/json"
+    }
   });
       alert("Registration successful!");
       navigate("/"); 
@@ -97,6 +101,7 @@ export default function Register() {
               <option value="Admin">Admin</option>
               <option value="Station">Station</option>
               <option value="Depot">Depot</option>
+              <option value="Driver">Driver</option>
             </select>
           </div>
 

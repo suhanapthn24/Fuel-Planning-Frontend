@@ -45,11 +45,17 @@ export default function Navbar() {
         <Link to="/notifications" className="text-gray-700 hover:text-red-600">
           <BellIcon className="h-6 w-6" />
         </Link>
-        <img
-          src=""
-          alt="User"
-          className="h-8 w-8 rounded-full border"
-        />
+        <button
+          onClick={() => navigate('/profile')}
+          className="h-8 w-8 rounded-full border overflow-hidden focus:outline-none"
+          aria-label="User Profile"
+        >
+          <img
+            src="https://via.placeholder.com/32" 
+            alt="User"
+            className="h-8 w-8 object-cover"
+          />
+        </button>
       </div>
     </div>
   );

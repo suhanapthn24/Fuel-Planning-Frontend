@@ -5,6 +5,8 @@ import { Routes, Route } from "react-router-dom";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import ForgotPassword from "./components/forgetpassword";
+import Profile from "./components/profile";
+import ApproveUsers from "./components/Admin/ApproveUsers";
 
 // Admin Components
 import Dashboard from "./components/Admin/dashboard";
@@ -14,7 +16,7 @@ import Reports from "./components/Admin/reports";
 import Notifications from "./components/Admin/notifications";
 
 // User Component
-import User from "./components/user";
+import UserManagement from "./components/user";
 
 // Station Components
 import StationDashboard from "./components/Station/station";
@@ -31,6 +33,8 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgetpassword" element={<ForgotPassword />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/approve" element={<ApproveUsers />} />
 
       {/* Admin Routes */}
       <Route path="/dashboard" element={<Dashboard />} />
@@ -40,7 +44,7 @@ function App() {
       <Route path="/notifications" element={<Notifications />} />
 
       {/* User Route */}
-      <Route path="/user" element={<User />} />
+      <Route path="/user" element={<UserManagement  />} />
 
       {/* Station Routes */}
       <Route path="/station" element={<StationDashboard />} />
