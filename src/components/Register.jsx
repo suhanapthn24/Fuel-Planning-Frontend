@@ -21,7 +21,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:8000/auth/register", {
+      await axios.post("http://127.0.0.1:8000/register", {
     username: formData.name.trim(),
     email: formData.email.trim(),
     user_phone: formData.phone.trim(),

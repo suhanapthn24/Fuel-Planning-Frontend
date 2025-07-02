@@ -21,7 +21,7 @@ const sidebarItems = [
   { name: "Inventory", icon: GasPumpIcon, path: "/inventory" },
   { name: "Exceptions", icon: ExclamationTriangleIcon, path: "/sexceptions" },
   { name: "Notifications", icon: BellIcon, path: "/snotifications" },
-  { name: "Reports", icon: ChartBarIcon, path: "/sreports" }, // Confirm if route exists
+  { name: "Reports", icon: ChartBarIcon, path: "/sreports" }, 
   { name: "Logout", icon: ArrowLeftOnRectangleIcon, path: "/" },
 ];
 

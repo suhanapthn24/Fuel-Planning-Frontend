@@ -1,225 +1,149 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+
 import Navbar from './navbar';
 import Sidebar from './sidebar';
 import DashboardCards from './dashboardcards';
-import DashboardAnalytics from './dashanalytics';
-
-export function AdminExceptions() {
-  const [exceptions, setExceptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios
-      .get('http://localhost:8000/exceptions/')
-      .then((res) => setExceptions(res.data))
-      .catch((err) => console.error('Error fetching exceptions:', err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const refreshException = (id, updated) => {
-    setExceptions((prev) =>
-      prev.map((ex) => (ex.exception_id === id ? { ...ex, ...updated } : ex))
-    );
-  };
-
-  const handleAcknowledge = (ex) => {
-    if (ex.exception_status === 'acknowledged') return;
-    axios
-      .patch(`http://localhost:8000/exceptions/${ex.exception_id}`, {
-        exception_status: 'acknowledged',
-      })
-      .then(() => refreshException(ex.exception_id, { exception_status: 'acknowledged' }))
-      .catch((err) => alert('Failed to acknowledge: ' + err));
-  };
-
-  const handleReassignDriver = (ex) => {
-    const newDriverId = prompt('Enter new Driver ID for Trip ' + ex.trip_id);
-    if (!newDriverId) return;
-    axios
-      .patch(`http://localhost:8000/trips/${ex.trip_id}`, {
-        driver_id: newDriverId,
-      })
-      .then(() => alert('Driver reassigned!'))
-      .catch((err) => alert('Failed to reassign driver: ' + err));
-  };
-
-  const handleNotifyDepot = (ex) => {
-    axios
-      .post(`http://localhost:8000/exceptions/${ex.exception_id}/notify_depot`)
-      .then(() => alert('Depot notified'))
-      .catch((err) => alert('Failed to notify depot: ' + err));
-  };
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow overflow-x-auto">
-      <table className="min-w-full text-sm text-left">
-        <thead className="bg-gray-100 text-gray-700 font-semibold">
-          <tr>
-            <th className="px-6 py-4">Exception Type</th>
-            <th className="px-6 py-4">Trip ID</th>
-            <th className="px-6 py-4">Timestamp</th>
-            <th className="px-6 py-4">Status</th>
-            <th className="px-6 py-4 text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {exceptions.map((ex) => (
-            <tr key={ex.exception_id} className="hover:bg-gray-50">
-              <td className="px-6 py-4">{ex.exception_type}</td>
-              <td className="px-6 py-4">{ex.trip_id}</td>
-              <td className="px-6 py-4">{new Date(ex.date_stamp).toLocaleString()}</td>
-              <td className="px-6 py-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    ex.exception_status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}
-                >
-                  {ex.exception_status.charAt(0).toUpperCase() + ex.exception_status.slice(1)}
-                </span>
-              </td>
-              <td className="px-6 py-4 text-blue-600 space-x-3 text-sm whitespace-nowrap">
-                <button className="hover:underline" onClick={() => handleAcknowledge(ex)}>
-                  Acknowledge
-                </button>
-                <span>|</span>
-                <button className="hover:underline" onClick={() => handleReassignDriver(ex)}>
-                  Reassign Driver
-                </button>
-                <span>|</span>
-                <button className="hover:underline" onClick={() => handleNotifyDepot(ex)}>
-                  Notify Depot
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import DashboardStatusCircles from './dashstatus';
 
 export default function Dashboard() {
   const [exceptions, setExceptions] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [models, setModels] = useState([]);
+
+  // Put your Excel download link here (replace below URL)
+  const excelDownloadUrl = 'https://docs.google.com/spreadsheets/d/1cpl4X28sLhX8XtxgvlJVFPhJ6pEJz3nTV4LWBVmNorM/edit?gid=0#gid=0';
 
   useEffect(() => {
-    axios
-      .get('http://localhost:8000/exceptions/')
-      .then((res) => setExceptions(res.data))
-      .catch((err) => console.error('Error fetching exceptions:', err))
+    Promise.all([
+      axios.get('http://localhost:8000/exceptions/'),
+      axios.get('http://localhost:8000/trips/'),
+      axios.get('http://localhost:8000/alerts/'),
+      axios.get('http://localhost:8000/models/'),
+    ])
+      .then(([exceptionsRes, tripsRes, alertsRes, modelsRes]) => {
+        setExceptions(exceptionsRes.data);
+        setTrips(tripsRes.data);
+        setAlerts(alertsRes.data);
+        setModels(modelsRes.data);
+      })
+      .catch((err) => console.error('Error fetching dashboard data:', err))
       .finally(() => setLoading(false));
   }, []);
 
-  const [trips, setTrips] = useState([]);            
-  const [alerts, setAlerts] = useState([]);         
-
-  // Fetch trips & alerts in parallel with exceptions
-  useEffect(() => {
-    Promise.all([
-      axios.get('http://localhost:8000/trips/'),     
-      axios.get('http://localhost:8000/alerts/'),     
-    ])
-      .then(([tripsRes, alertsRes]) => {
-        setTrips(tripsRes.data);
-        setAlerts(alertsRes.data);
-      })
-      .catch((err) => console.error('Error fetching trips/alerts:', err));
-  }, []);
-
   const counts = {
-    // TRIP METRICS
     activeTrips: trips.filter((t) => t.trip_status === 'active').length,
     delayedTrips: trips.filter((t) => t.trip_status === 'delayed').length,
-
-    // ALERTS METRICS
     bufferAlerts: alerts.filter((a) => a.alert_type === 'buffer').length,
-
-    // EXCEPTION METRICS
     totalExceptions: exceptions.length,
     pendingExceptions: exceptions.filter((e) => e.exception_status === 'pending').length,
     acknowledgedExceptions: exceptions.filter((e) => e.exception_status === 'acknowledged').length,
   };
 
+  // Function to trigger download
+  const handleExportExcel = () => {
+    // Open the Excel file URL in a new tab or trigger download
+    window.open(excelDownloadUrl, '_blank');
+  };
+
   return (
-    <div className="h-screen flex flex-col">
-      {/* Top Navbar */}
-      <div className="h-16 w-full bg-white shadow z-10">
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Navbar */}
+      <div className="h-16 bg-white shadow z-10">
         <Navbar />
       </div>
 
-      {/* Sidebar & content area */}
+      {/* Sidebar + Main Content */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
         <div className="w-64 bg-white shadow h-full overflow-y-auto">
           <Sidebar />
         </div>
 
-        <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
-          {/* Header */}
-          <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-          <p className="text-sm text-gray-500 mb-6">
-            Overview of key metrics and alerts for your fuel fleet operations.
-          </p>
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-          {/* Metric cards – now receive live counts */}
+        {/* Show Dashboard Cards at the top */}
+        <section className="bg-white rounded-lg shadow p-6 mb-6 min-w-0">
+          <h2 className="text-lg font-semibold mb-4">Dashboard Cards</h2>
           <DashboardCards counts={counts} />
+        </section>
 
-          {/* Exception Alerts */}
-          <h2 className="text-lg font-bold mt-10 mb-2">Exception Alerts</h2>
-          {loading ? (
-            <p className="text-sm text-gray-500">Loading exceptions…</p>
-          ) : exceptions.length === 0 ? (
-            <p className="text-sm text-gray-500">No active exceptions 🎉</p>
-          ) : (
-            <div className="bg-white rounded-xl shadow overflow-x-auto">
-              <table className="min-w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-700 font-semibold">
-                  <tr>
-                    <th className="px-6 py-4">Exception Type</th>
-                    <th className="px-6 py-4">Trip ID</th>
-                    <th className="px-6 py-4">Timestamp</th>
-                    <th className="px-6 py-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {exceptions.slice(0, 5).map((ex) => (
-                    <tr key={ex.exception_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">{ex.exception_type}</td>
-                      <td className="px-6 py-4">{ex.trip_id}</td>
-                      <td className="px-6 py-4">{new Date(ex.date_stamp).toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            ex.exception_status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {ex.exception_status.charAt(0).toUpperCase() + ex.exception_status.slice(1)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {exceptions.length > 5 && (
-                <p className="text-right text-xs text-gray-500 py-2 pr-4">
-                  Showing 5 of {exceptions.length} exceptions – see “Exceptions” page for full list.
-                </p>
-              )}
-            </div>
-          )}
+        {/* Two side-by-side blocks for lists */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Block: Predictive Models */}
+          <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
+            <h2 className="text-lg font-semibold mb-4">Predictive Models</h2>
+            {loading ? (
+              <p>Loading models...</p>
+            ) : models.length === 0 ? (
+              <p>No models found.</p>
+            ) : (
+              <ul className="space-y-2 max-h-[400px] overflow-y-auto">
+                {models.map((model) => (
+                  <li
+                    key={model.id || model.model_id}
+                    className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <p className="font-semibold">{model.name || model.model_name}</p>
+                    <p>Status: {model.status || 'N/A'}</p>
+                    <p>Last Run: {model.last_run || 'N/A'}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-          {/* Analytics */}
-          <h2 className="text-lg font-bold mt-10 mb-4">Performance Metrics</h2>
-          <DashboardAnalytics />
-        </main>
+          {/* Right Block: Exceptions List (or you can replace with Trips, Alerts, etc.) */}
+          <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
+            <h2 className="text-lg font-semibold mb-4">Exceptions</h2>
+            {loading ? (
+              <p>Loading exceptions...</p>
+            ) : exceptions.length === 0 ? (
+              <p>No exceptions found.</p>
+            ) : (
+              <ul className="space-y-2 max-h-[400px] overflow-y-auto">
+                {exceptions.map((exception) => (
+                  <li
+                    key={exception.id || exception.exception_id}
+                    className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <p className="font-semibold">{exception.title || exception.exception_type}</p>
+                    <p>Status: {exception.exception_status}</p>
+                    <p>Reported at: {new Date(exception.reported_at).toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {/* Export + Power BI */}
+        <div className="mt-10">
+          <h2 className="text-lg font-bold mb-4">Power BI Dashboard</h2>
+          <div className="mb-4 flex items-center gap-4">
+            <button
+              onClick={handleExportExcel}
+              className="bg-indigo-600 text-white px-5 py-2 rounded hover:bg-indigo-700 transition"
+            >
+              Export Excel
+            </button>
+          </div>
+          <div className="border rounded-lg h-96 bg-white shadow flex items-center justify-center">
+            <iframe
+              title="Power BI Dashboard"
+              width="100%"
+              height="100%"
+              src="https://app.powerbi.com/view?r=eyJrIjoiZmRmYTgwZDgtZjllNy00NTUzLWJmYWItZjQxOWUxM2E5NjM5IiwidCI6IjQ5YmM2YjEzLTlmZTUtNGZmMS05ZDYxLTY1YjcwOGIwYjc5NSJ9"
+              frameBorder="0"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </main>
       </div>
     </div>
   );

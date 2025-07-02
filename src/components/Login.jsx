@@ -33,7 +33,7 @@ export default function Login() {
     try {
       const body = new URLSearchParams({ username: email, password });
 
-      const res = await fetch("http://127.0.0.1:8000/auth/token", {
+      const res = await fetch("http://127.0.0.1:8000/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,

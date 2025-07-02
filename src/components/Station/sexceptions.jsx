@@ -6,7 +6,7 @@ import Navbar from './snavbar';
 export default function StationExceptions() {
   const [exceptions, setExceptions] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null); // null → create, number → update
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     exception_type: '',
     trip_id: '',
@@ -14,13 +14,30 @@ export default function StationExceptions() {
     exception_status: 'pending',
   });
   const [error, setError] = useState('');
+  const [unauthorized, setUnauthorized] = useState(false);
+
+  const token = localStorage.getItem('access_token'); // ✅ Correct token key
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
 
   useEffect(() => {
+    if (!token) {
+      setUnauthorized(true);
+      return;
+    }
+
     axios
-      .get('http://localhost:8000/exceptions/')
+      .get('http://localhost:8000/exceptions/', axiosConfig)
       .then((res) => setExceptions(res.data))
-      .catch((err) => console.error('Fetch failed:', err));
-  }, []);
+      .catch((err) => {
+        console.error('Fetch failed:', err);
+        if (err.response?.status === 401) setUnauthorized(true);
+      });
+  }, [token]);
 
   const resetForm = () => {
     setFormData({
@@ -30,6 +47,7 @@ export default function StationExceptions() {
       exception_status: 'pending',
     });
     setEditingId(null);
+    setError('');
   };
 
   const openCreateModal = () => {
@@ -42,7 +60,7 @@ export default function StationExceptions() {
     setFormData({
       exception_type: ex.exception_type,
       trip_id: ex.trip_id,
-      date_stamp: new Date(ex.date_stamp).toISOString().slice(0, 16), // yyyy‑MM‑ddTHH:mm
+      date_stamp: new Date(ex.date_stamp).toISOString().slice(0, 16),
       exception_status: ex.exception_status,
     });
     setShowModal(true);
@@ -57,42 +75,48 @@ export default function StationExceptions() {
 
     const payload = {
       ...formData,
-      date_stamp: new Date(date_stamp).toISOString(), // ensure ISO
+      date_stamp: new Date(date_stamp).toISOString(),
     };
 
-    // Decide between POST (create) and PATCH (update)
     const request = editingId
-      ? axios.patch(`http://127.0.0.1:8000/exceptions/${editingId}`, payload)
-      : axios.post('http://127.0.0.1:8000/exceptions/', payload);
+      ? axios.patch(`http://localhost:8000/exceptions/${editingId}`, payload, axiosConfig)
+      : axios.post(`http://localhost:8000/exceptions/`, payload, axiosConfig);
 
     request
       .then((res) => {
-        let updated;
-        if (editingId) {
-          // replace item in list
-          updated = exceptions.map((ex) =>
-            ex.exception_id === editingId ? res.data : ex
-          );
-        } else {
-          updated = [...exceptions, res.data];
-        }
+        const updated = editingId
+          ? exceptions.map((ex) => (ex.exception_id === editingId ? res.data : ex))
+          : [...exceptions, res.data];
+
         setExceptions(updated);
         setShowModal(false);
         resetForm();
-        setError('');
       })
       .catch((err) => {
         console.error('Submit failed:', err);
-        setError('Failed to save exception.');
+        if (err.response?.status === 401) {
+          setUnauthorized(true);
+        } else {
+          setError('Failed to save exception.');
+        }
       });
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       setShowModal(false);
-      setError('');
+      resetForm();
     }
   };
+
+  // 🔒 If not logged in or token is invalid
+  if (unauthorized) {
+    return (
+      <div className="flex items-center justify-center h-screen text-red-600 font-semibold text-lg">
+        Unauthorized – Please log in again.
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col" onKeyDown={handleKeyDown} tabIndex={0}>
@@ -119,7 +143,7 @@ export default function StationExceptions() {
             </button>
           </div>
 
-          {/* Exceptions table */}
+          {/* Exceptions Table */}
           <div className="bg-white rounded-xl shadow overflow-x-auto">
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gray-100 text-gray-700 font-semibold">
@@ -147,14 +171,12 @@ export default function StationExceptions() {
                             : 'bg-green-100 text-green-800'
                         }`}
                       >
-                        {ex.exception_status.charAt(0).toUpperCase() + ex.exception_status.slice(1)}
+                        {ex.exception_status.charAt(0).toUpperCase() +
+                          ex.exception_status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-blue-600 space-x-2 text-sm">
-                      <button
-                        className="hover:underline"
-                        onClick={() => openEditModal(ex)}
-                      >
+                      <button className="hover:underline" onClick={() => openEditModal(ex)}>
                         Update
                       </button>
                     </td>
@@ -164,16 +186,14 @@ export default function StationExceptions() {
             </table>
           </div>
 
-          {/* Modal – create / edit */}
+          {/* Modal */}
           {showModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-96 relative">
-                {/* Close button */}
                 <button
                   onClick={() => {
                     setShowModal(false);
                     resetForm();
-                    setError('');
                   }}
                   className="absolute top-2 right-2 text-gray-500 hover:text-black text-lg font-bold"
                 >
@@ -183,17 +203,15 @@ export default function StationExceptions() {
                 <h3 className="text-lg font-semibold mb-4">
                   {editingId ? 'Edit Exception' : 'Raise New Exception'}
                 </h3>
+
                 {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
-                {/* Exception Type */}
                 <select
                   value={formData.exception_type}
                   onChange={(e) => setFormData({ ...formData, exception_type: e.target.value })}
                   className="w-full mb-3 px-3 py-2 border rounded bg-white"
                 >
-                  <option value="" disabled>
-                    Select Exception Type
-                  </option>
+                  <option value="" disabled>Select Exception Type</option>
                   <option value="low fuel">Low Fuel</option>
                   <option value="route deviation">Route Deviation</option>
                   <option value="excessive speed">Excessive Speed</option>
@@ -201,7 +219,6 @@ export default function StationExceptions() {
                   <option value="other">Other</option>
                 </select>
 
-                {/* Trip ID */}
                 <input
                   type="text"
                   placeholder="Trip ID"
@@ -210,7 +227,6 @@ export default function StationExceptions() {
                   className="w-full mb-3 px-3 py-2 border rounded"
                 />
 
-                {/* Date Time */}
                 <input
                   type="datetime-local"
                   value={formData.date_stamp}
@@ -218,11 +234,12 @@ export default function StationExceptions() {
                   className="w-full mb-3 px-3 py-2 border rounded"
                 />
 
-                {/* Status dropdown (only in edit mode) */}
                 {editingId && (
                   <select
                     value={formData.exception_status}
-                    onChange={(e) => setFormData({ ...formData, exception_status: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, exception_status: e.target.value })
+                    }
                     className="w-full mb-3 px-3 py-2 border rounded bg-white"
                   >
                     <option value="pending">Pending</option>
@@ -230,7 +247,6 @@ export default function StationExceptions() {
                   </select>
                 )}
 
-                {/* Submit */}
                 <button
                   onClick={handleSubmit}
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded"

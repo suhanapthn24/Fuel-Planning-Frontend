@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "./Admin/sidebar"; // adjust the path if needed
-import Navbar from "./Admin/navbar";   // adjust the path if needed
+import Sidebar from "./Admin/sidebar";
+import Navbar from "./Admin/navbar";   
 import { useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const TABS = ["Admin", "Pending", "Drivers", "Depots", "Stations"];
+const TABS = ["Pending", "Drivers", "Depots", "Stations"];
 
 export default function UserManagement() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export default function UserManagement() {
     let endpoint;
 
     if (activeTab === "Pending") {
-      endpoint = `${API_BASE}/auth/pending-users`;
+      endpoint = `${API_BASE}/pending-users`;
     } else if (activeTab === "Admin") {
       endpoint = `${API_BASE}/users?role=Admin`;
     } else {
@@ -61,7 +61,7 @@ export default function UserManagement() {
     const token = localStorage.getItem("access_token");
     setApproving((a) => ({ ...a, [userId]: true }));
     try {
-      const res = await fetch(`${API_BASE}/auth/approve-user/${userId}`, {
+      const res = await fetch(`${API_BASE}/approve-user/${userId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -15,7 +15,7 @@ const sidebarItems = [
   { name: "Trips", icon: TruckIcon, path: "/trips" },
   { name: "Exceptions", icon: ExclamationTriangleIcon, path: "/exceptions" },
   { name: "Reports", icon: ChartBarIcon, path: "/reports" },
-  { name: "Notifications", icon: BellIcon, path: "/notifications" },
+  // { name: "Notifications", icon: BellIcon, path: "/notifications" },
   { name: "User", icon: UserIcon, path: "/user" },
   { name: "Logout", icon: ArrowLeftOnRectangleIcon, path: "/" },
 ];
