@@ -8,9 +8,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  /* ────────────────────────────────────────────────────────────
-     Map each role to its dashboard route
-  ──────────────────────────────────────────────────────────── */
   const DASHBOARD_ROUTES = {
     Admin: "/dashboard",
     Station: "/station",
@@ -43,12 +40,10 @@ export default function Login() {
 
       const data = await res.json();
 
-      /* Store what you need */
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("userEmail", email);
       localStorage.setItem("role", role);
 
-      /* Redirect to the correct dashboard */
       const target = DASHBOARD_ROUTES[role];
       if (!target) {
         alert("Unknown role; cannot find a dashboard.");
@@ -82,7 +77,7 @@ export default function Login() {
         <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <img src={logo} alt="Taj Gasoline" className="h-16" />
+            <img src={logo} alt="Taj Gasoline" className="h-20" />
           </div>
           <h1 className="text-center font-bold text-lg mb-6">Log in</h1>
 

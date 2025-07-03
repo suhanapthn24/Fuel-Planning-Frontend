@@ -4,7 +4,7 @@ import axios from 'axios';
 import Navbar from './navbar';
 import Sidebar from './sidebar';
 import DashboardCards from './dashboardcards';
-import DashboardStatusCircles from './dashstatus';
+import PredictiveModels from './dashstatus';
 
 export default function Dashboard() {
   const [exceptions, setExceptions] = useState([]);
@@ -77,7 +77,7 @@ export default function Dashboard() {
           {/* Left Block: Predictive Models */}
           <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
             <h2 className="text-lg font-semibold mb-4">Predictive Models</h2>
-            {loading ? (
+            {/* {loading ? (
               <p>Loading models...</p>
             ) : models.length === 0 ? (
               <p>No models found.</p>
@@ -94,11 +94,12 @@ export default function Dashboard() {
                   </li>
                 ))}
               </ul>
-            )}
+            )} */}
+            <PredictiveModels />
           </section>
 
           {/* Right Block: Exceptions List (or you can replace with Trips, Alerts, etc.) */}
-          <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
+          {/* <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
             <h2 className="text-lg font-semibold mb-4">Exceptions</h2>
             {loading ? (
               <p>Loading exceptions...</p>
@@ -118,7 +119,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             )}
-          </section>
+          </section> */}
         </div>
 
         {/* Export + Power BI */}
@@ -137,7 +138,7 @@ export default function Dashboard() {
               title="Power BI Dashboard"
               width="100%"
               height="100%"
-              src="https://app.powerbi.com/view?r=eyJrIjoiZmRmYTgwZDgtZjllNy00NTUzLWJmYWItZjQxOWUxM2E5NjM5IiwidCI6IjQ5YmM2YjEzLTlmZTUtNGZmMS05ZDYxLTY1YjcwOGIwYjc5NSJ9"
+              // src="https://app.powerbi.com/view?r=eyJrIjoiZmRmYTgwZDgtZjllNy00NTUzLWJmYWItZjQxOWUxM2E5NjM5IiwidCI6IjQ5YmM2YjEzLTlmZTUtNGZmMS05ZDYxLTY1YjcwOGIwYjc5NSJ9"
               frameBorder="0"
               allowFullScreen
             />

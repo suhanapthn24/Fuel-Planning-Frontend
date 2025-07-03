@@ -270,7 +270,7 @@ export function TripsTable({ searchQuery, filters }) {
               </td>
               <td className="px-4 py-3">
                 {trip.start_time
-                  ? new Date(trip.delivery_schedule_time).toLocaleString()
+                  ? new Date(trip.schedule).toLocaleString()
                   : "N/A"}
               </td>
               <td className="px-4 py-3">
@@ -328,7 +328,7 @@ export function TripsTable({ searchQuery, filters }) {
               <p><strong>Origin:</strong> {viewingTrip.origin}</p>
               <p><strong>Destination:</strong> {viewingTrip.destination}</p>
               <p><strong>ETA:</strong> {viewingTrip.eta}</p>
-              <p><strong>Scheduled Time: </strong>{viewingTrip.delivery_schedule_time}</p>
+              <p><strong>Scheduled Time: </strong>{new Date(viewingTrip.schedule).toLocaleString()}</p>
               <p><strong>Start Time:</strong> {viewingTrip.start_time ? new Date(viewingTrip.start_time).toLocaleString() : "N/A"}</p>
               <p><strong>End Time:</strong> {viewingTrip.end_time ? new Date(viewingTrip.end_time).toLocaleString() : "N/A"}</p>
               <p><strong>Delivered Liters:</strong> {viewingTrip.delivered_liters}</p>

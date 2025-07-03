@@ -3,8 +3,8 @@ import Sidebar from "./sidebar";
 import Navbar from "./navbar";
 
 export default function Reports({ counts = {} }) {
-  const powerBiEmbedUrl = "https://app.powerbi.com/view?r=eyJrIjoiZmRmYTgwZDgtZjllNy00NTUzLWJmYWItZjQxOWUxM2E5NjM5IiwidCI6IjQ5YmM2YjEzLTlmZTUtNGZmMS05ZDYxLTY1YjcwOGIwYjc5NSJ9";
-
+  // const powerBiEmbedUrl = "https://app.powerbi.com/view?r=eyJrIjoiZmRmYTgwZDgtZjllNy00NTUzLWJmYWItZjQxOWUxM2E5NjM5IiwidCI6IjQ5YmM2YjEzLTlmZTUtNGZmMS05ZDYxLTY1YjcwOGIwYjc5NSJ9";
+  const powerBiEmbedUrl = "";
   return (
     <div>
       {/* Sidebar */}

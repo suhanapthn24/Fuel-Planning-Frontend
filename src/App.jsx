@@ -7,6 +7,7 @@ import Register       from "./components/Register";
 import ForgotPassword from "./components/forgetpassword";
 import Profile        from "./components/profile";
 import ApproveUsers   from "./components/Admin/ApproveUsers";
+import UserManagement from "./components/user";
 
 /* Admin pages */
 import Dashboard     from "./components/Admin/dashboard";
@@ -29,6 +30,9 @@ import StationNotifications from "./components/Station/snotifications";
 /* Layout */
 import AdminLayout from "./components/Layout";
 import AddStationCard from "./components/addstation";
+import AddDepotCard from "./components/adddepot";
+import AddTruckCard from "./components/addtruck";
+import AddDriverCard from "./components/adddriver";
 
 function App() {
   return (
@@ -45,6 +49,7 @@ function App() {
       <Route path="/exceptions"    element={<Exceptions />} />
       <Route path="/reports"       element={<Reports />} />
       <Route path="/notifications" element={<Notifications />} />
+       <Route path="/user" element={<UserManagement />} />
 
       {/* ---------- everything that lives inside the admin layout ---------- */}
       <Route element={<AdminLayout />}>
@@ -55,6 +60,9 @@ function App() {
         <Route path="/drivers"  element={<Drivers />} />
         <Route path="/stations" element={<Stations />} />
         <Route path="/stations/new" element={<AddStationCard />} />
+        <Route path="/depots/new" element={<AddDepotCard />} />
+        <Route path="/trucks/new" element={<AddTruckCard />} />
+        <Route path="/drivers/new" element={<AddDriverCard />} />
 
         {/* station‑extras can stay nested or get their own layout – your call */}
         <Route path="/deliveries"    element={<Deliveries />} />

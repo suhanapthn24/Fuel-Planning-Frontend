@@ -102,8 +102,6 @@ export default function Depots() {
                 <th className="px-6 py-3 font-semibold">Address</th>
                 <th className="px-6 py-3 font-semibold">Fuel Types</th>
                 <th className="px-6 py-3 font-semibold">Bays</th>
-                <th className="px-6 py-3 font-semibold">Longitude</th>
-                <th className="px-6 py-3 font-semibold">Latitude</th>
               </tr>
             </thead>
             <tbody>
@@ -119,8 +117,6 @@ export default function Depots() {
                   <td className="px-6 py-4 whitespace-pre-wrap">
                     {dep.bay_available}
                   </td>
-                  <td className="px-6 py-4">{dep.depot_longitude}</td>
-                  <td className="px-6 py-4">{dep.depot_latitude}</td>
                 </tr>
               ))}
             </tbody>
