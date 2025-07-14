@@ -344,66 +344,198 @@
 // }
 
 import React, { useEffect, useState } from "react";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+import { CheckCircle2 } from "lucide-react";
 
-export default function PredictiveModels() {
-  const [stations, setStations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// Base URL for API
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-  useEffect(() => {
-    async function fetchCriticalStations() {
-      try {
-        setLoading(true);
-        setError(null);
+// Generate a color on a green(0)→yellow(50)→red(100) scale
+function getColor(percent) {
+  const hue = Math.round((1 - percent / 100) * 120); // 120° green to 0° red
+  return `hsl(${hue}, 100%, 40%)`;
+}
 
-        const response = await fetch("http://localhost:8000/api/stations/critical_ml");
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-        const data = await response.json();
-        setStations(data.stations || []);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load critical stations.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCriticalStations();
-  }, []);
-
-  if (loading) return <p>Loading stations...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
+// Reusable RingCard for predictive models
+function RingCard({ title, count, percent = 0, onClick }) {
+  const displayPercent = count === 0 ? 100 : percent;
+  // Safe case always green
+  const tint = count === 0 ? "#22c55e" : getColor(displayPercent);
 
   return (
-    <section className="flex-1 bg-white rounded-lg shadow p-6 min-w-0">
-      <h2 className="text-lg font-semibold mb-4">Stations Approaching Critical Level</h2>
-      {stations.length === 0 ? (
-        <p className="text-sm text-gray-500">No stations at risk.</p>
-      ) : (
-        <ul className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-          {stations.map((s) => (
-            <li
-              key={s.station_id}
-              className="border rounded p-3 flex flex-col hover:bg-gray-50 cursor-pointer transition"
-            >
-              <span className="font-semibold">{s.station_id}</span>
-              <span className="text-sm">
-                Current fuel level: <strong>{s.current_l} L</strong>
-              </span>
-              <span className="text-sm">
-                Probability critical next 24h:{" "}
-                <strong>{(s.prob_crit_24h * 100).toFixed(2)}%</strong>
-              </span>
-              <span className={`text-sm ${s.will_breach ? "text-red-600" : "text-green-600"}`}>
-                {s.will_breach ? "At risk" : "Safe"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 max-w-xs w-full hover:shadow-xl transition-shadow"
+    >
+      <div className="w-32 h-32">
+        <CircularProgressbar
+          value={displayPercent}
+          text={
+            count === 0 ? (
+              <CheckCircle2 className="w-10 h-10 text-green-500" />
+            ) : (
+              `${count}`
+            )
+          }
+          styles={buildStyles({
+            pathColor: tint,
+            trailColor: "#e5e7eb",
+            strokeLinecap: "round",
+            textColor: tint,
+            textSize: "28px",
+          })}
+        />
+      </div>
+      <span className="mt-4 text-xl font-semibold text-gray-800">{title}</span>
+    </button>
   );
 }
 
+export default function PredictiveModels() {
+  const [stations, setStations] = useState([]);
+  const [loadingStations, setLoadingStations] = useState(true);
+  const [errorStations, setErrorStations] = useState(false);
+  const [trucks, setTrucks] = useState([]);
+  const [loadingTrucks, setLoadingTrucks] = useState(true);
+  const [errorTrucks, setErrorTrucks] = useState(false);
+  const [expanded, setExpanded] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async (endpoint, setter, setLoading, setError) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}${endpoint}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setter(data.stations || data.trucks || []);
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData(
+      "/api/stations/critical_ml",
+      setStations,
+      setLoadingStations,
+      setErrorStations
+    );
+    fetchData(
+      "/api/trucks/maintainance_ml",
+      setTrucks,
+      setLoadingTrucks,
+      setErrorTrucks
+    );
+  }, []);
+
+  const totalStations = stations.length;
+  const riskStations = stations.filter((s) => s.will_breach).length;
+  const stationPercent = totalStations
+    ? Math.round((riskStations / totalStations) * 100)
+    : 0;
+
+  const totalTrucks = trucks.length;
+  const riskTrucks = trucks.filter((t) => t.will_need_maint).length;
+  const truckPercent = totalTrucks
+    ? Math.round((riskTrucks / totalTrucks) * 100)
+    : 0;
+
+  const toggle = (key) => setExpanded((prev) => (prev === key ? null : key));
+
+  return (
+    <div className="space-y-8 px-4">
+      {/* Predictive Model Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+        <RingCard
+          title={riskStations > 0 ? "Stations at Risk" : "All Stations Safe"}
+          count={riskStations}
+          percent={stationPercent}
+          onClick={() => riskStations > 0 && toggle("stations")}
+        />
+        <RingCard
+          title={riskTrucks > 0 ? "Trucks at Risk" : "All Trucks Safe"}
+          count={riskTrucks}
+          percent={truckPercent}
+          onClick={() => riskTrucks > 0 && toggle("trucks")}
+        />
+        <RingCard
+          title="Placeholder Model A"
+          count={0}
+          percent={0}
+          onClick={() => {}}
+        />
+        <RingCard
+          title="Placeholder Model B"
+          count={0}
+          percent={0}
+          onClick={() => {}}
+        />
+      </div>
+
+      {/* Expanded Details */}
+      {expanded === "stations" && (
+        <section className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4">
+            Stations Approaching Critical Level
+          </h2>
+          {loadingStations ? (
+            <p>Loading stations…</p>
+          ) : errorStations ? (
+            <p className="text-red-600">Failed to load stations.</p>
+          ) : (
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {stations
+                .filter((s) => s.will_breach)
+                .map((s) => (
+                  <li
+                    key={s.station_id}
+                    className="bg-red-50 border rounded p-3"
+                  >
+                    <p className="font-semibold">{s.station_id}</p>
+                    <p className="text-sm">
+                      Fuel: <strong>{s.current_l} L</strong>
+                    </p>
+                    <p className="text-sm">
+                      Prob:{" "}
+                      <strong>{(s.prob_crit_24h * 100).toFixed(2)}%</strong>
+                    </p>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {expanded === "trucks" && (
+        <section className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4">
+            Trucks Approaching Maintenance
+          </h2>
+          {loadingTrucks ? (
+            <p>Loading trucks…</p>
+          ) : errorTrucks ? (
+            <p className="text-red-600">Failed to load trucks.</p>
+          ) : (
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {trucks
+                .filter((t) => t.will_need_maint)
+                .map((t) => (
+                  <li key={t.truck_id} className="bg-red-50 border rounded p-3">
+                    <p className="font-semibold">Truck {t.truck_id}</p>
+                    <p className="text-sm">
+                      Mileage: <strong>{t.odometer_km} km</strong>
+                    </p>
+                    <p className="text-sm">
+                      Prob:{" "}
+                      <strong>{(t.prob_maint_24h * 100).toFixed(2)}%</strong>
+                    </p>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}

@@ -274,12 +274,16 @@ export function TripsTable({ searchQuery, filters }) {
                   : "N/A"}
               </td>
               <td className="px-4 py-3">
-                <button
-                  className="text-red-500 hover:underline"
-                  onClick={() => window.open(`http://localhost:8000/tracking/${trip.trip_id}`, "_blank")}
-                >
-                  Track
-                </button>
+                {trip.waze_url ? (
+                  <button
+                    className="text-blue-600 hover:underline"
+                    onClick={() => window.open(trip.waze_url, "_blank")}
+                  >
+                    Navigate
+                  </button>
+                ) : (
+                  "N/A"
+                )}
               </td>
               <td className="px-4 py-3 space-x-2">
                 <button
@@ -337,12 +341,16 @@ export function TripsTable({ searchQuery, filters }) {
                 <span className="break-words">{Array.isArray(viewingTrip.route) ? viewingTrip.route.join(" → ") : viewingTrip.route}</span>
               </div>
               <div className="col-span-2 text-right mt-2">
-                <button
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
-                  onClick={() => window.open("/tracking", "_blank")}
-                >
-                  Track Live
-                </button>
+                {viewingTrip.waze_url && (
+                  <a
+                    href={viewingTrip.waze_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                  >
+                    Open in Waze
+                  </a>
+                )}
               </div>
             </div>
           </div>
