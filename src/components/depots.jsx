@@ -2,15 +2,24 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
+const Product = {
+  diesel: "bg-blue-100 text-blue-800",
+  petrol: "bg-red-100 text-red-800",
+  hobc: "bg-green-100 text-green-800",
+  other: "bg-gray-100 text-gray-800",
+};
+
+const Status = {
+  active: "bg-green-100 text-green-800",
+  inactive: "bg-red-100 text-red-800",
+};
+
 export default function Depots() {
   const [depots, setDepots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
 
-  /* ------------------------------------------------------------------ */
-  /* fetch once on mount                                                */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
     let mounted = true;
 
@@ -19,14 +28,12 @@ export default function Depots() {
         setLoading(true);
         setError(null);
 
-        /* Auth header (comment out if your GET is public) */
-        const token   = localStorage.getItem("token");
+        const token = localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const { data } = await axios.get(
-          "http://127.0.0.1:8000/depots/",
-          { headers }
-        );
+        const { data } = await axios.get("http://127.0.0.1:8000/depots/", {
+          headers,
+        });
 
         console.log("Depots from API:", data);
         if (mounted) setDepots(data);
@@ -43,20 +50,12 @@ export default function Depots() {
     };
   }, []);
 
-  /* ------------------------------------------------------------------ */
-  /* memoised search filter                                             */
-  /* ------------------------------------------------------------------ */
-  const filteredDepots = useMemo(
-    () =>
-      depots.filter((d) =>
-        d.depot_name.toLowerCase().includes(search.toLowerCase())
-      ),
-    [depots, search]
-  );
+  const filteredDepots = useMemo(() => {
+    return depots.filter((d) =>
+      (d?.depot_name || "").toLowerCase().includes((search || "").toLowerCase())
+    );
+  }, [depots, search]);
 
-  /* ------------------------------------------------------------------ */
-  /* render                                                             */
-  /* ------------------------------------------------------------------ */
   return (
     <>
       <h1 className="text-2xl font-semibold mb-6">Depots Overview</h1>
@@ -97,28 +96,61 @@ export default function Depots() {
           <table className="min-w-full text-sm text-gray-700">
             <thead>
               <tr className="border-b bg-gray-100 text-left text-xs uppercase tracking-wider">
-                <th className="px-6 py-3 font-semibold">ID</th>
+                <th className="px-6 py-3 font-semibold">Code</th>
                 <th className="px-6 py-3 font-semibold">Name</th>
                 <th className="px-6 py-3 font-semibold">Address</th>
-                <th className="px-6 py-3 font-semibold">Fuel Types</th>
-                <th className="px-6 py-3 font-semibold">Bays</th>
+                <th className="px-6 py-3 font-semibold">Product</th>
+                <th className="px-6 py-3 font-semibold">Bay 1</th>
+                <th className="px-6 py-3 font-semibold">Bay 2</th>
+                <th className="px-6 py-3 font-semibold">Bay 3</th>
+                <th className="px-6 py-3 font-semibold">Bay 4</th>
+                <th className="px-6 py-3 font-semibold">Bay 5</th>
+                <th className="px-6 py-3 font-semibold">Capacity</th>
+                <th className="px-6 py-3 font-semibold">Loading Time (mins)</th>
+                <th className="px-6 py-3 font-semibold">Opening Hours</th>
               </tr>
             </thead>
             <tbody>
-              {filteredDepots.map((dep) => (
-                <tr
-                  key={dep.depot_id}
-                  className="border-b last:border-0 hover:bg-gray-50"
-                >
-                  <td className="px-6 py-4">{dep.depot_id}</td>
-                  <td className="px-6 py-4">{dep.depot_name}</td>
-                  <td className="px-6 py-4">{dep.depot_address}</td>
-                  <td className="px-6 py-4">{dep.fuel_types_available}</td>
-                  <td className="px-6 py-4 whitespace-pre-wrap">
-                    {dep.bay_available}
-                  </td>
-                </tr>
-              ))}
+              {filteredDepots.map((dep) => {
+                const productType = dep.product?.toLowerCase() || "other";
+                const badgeClass = Product[productType] || Product.other;
+
+                const statusType = dep.status?.toLowerCase() === "inactive" ? "inactive" : "active";
+                const statusClass = Status[statusType];
+
+                return (
+                  <tr
+                    key={dep.depot_id}
+                    className="border-b last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4">{dep.depot_code}</td>
+                    <td className="px-6 py-4">{dep.depot_name}</td>
+                    <td className="px-6 py-4">{dep.depot_address}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${badgeClass}`}
+                      >
+                        {dep.product}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${statusClass}`}
+                      >
+                        {dep.bay_1}
+                      </span>
+                    </td>
+                    
+                    <td className="px-6 py-4">{dep.bay_2}</td>
+                    <td className="px-6 py-4">{dep.bay_3}</td>
+                    <td className="px-6 py-4">{dep.bay_4}</td>
+                    <td className="px-6 py-4">{dep.bay_5}</td>
+                    <td className="px-6 py-4">{dep.capacity}</td>
+                    <td className="px-6 py-4">{dep.admin}</td>
+                    <td className="px-6 py-4">{dep.opening_hours}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

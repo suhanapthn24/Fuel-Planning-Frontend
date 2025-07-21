@@ -46,6 +46,9 @@ export default function AssignTrip({ onBack }) {
 
     const payload = {
       ...formData,
+      driver_id: String(formData.driver_id),
+      truck_id: String(formData.truck_id),
+      depot_id: String(formData.depot_id),
       delivered_liters: parseFloat(formData.delivered_liters),
       eta: parseFloat(formData.eta),
       route: formData.route.split(",").map((s) => s.trim()),

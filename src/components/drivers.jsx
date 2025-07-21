@@ -97,28 +97,22 @@ export default function Drivers() {
           <table className="min-w-full text-sm text-gray-700">
             <thead>
               <tr className="border-b bg-gray-100 text-left text-xs uppercase tracking-wider">
+                <th className="px-6 py-3 font-semibold">Driver Id</th>
                 <th className="px-6 py-3 font-semibold">Name</th>
-                <th className="px-6 py-3 font-semibold">License #</th>
-                <th className="px-6 py-3 font-semibold">License Type</th>
-                <th className="px-6 py-3 font-semibold">Phone</th>
+                <th className="px-6 py-3 font-semibold">Designation#</th>
+                <th className="px-6 py-3 font-semibold">Date of Joining</th>
+                <th className="px-6 py-3 font-semibold">TL Cost Center</th>
                 {/* <th className="px-6 py-3 font-semibold">Truck ID</th> */}
               </tr>
             </thead>
             <tbody>
               {filtered.map((d) => (
                 <tr key={d.driver_id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="px-6 py-4">{d.driver_id}</td>
                   <td className="px-6 py-4">{d.driver_name}</td>
-                  <td className="px-6 py-4">{d.license_number}</td>
-                  <td className="px-6 py-4">
-                    <span
-                        className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                        licenseTypeColors[d.license_type] || licenseTypeColors.other
-                        }`}
-                    >
-                        {d.license_type.replace(/_/g, " ")}
-                    </span>
-                    </td>
-                  <td className="px-6 py-4">{d.driver_phone}</td>
+                  <td className="px-6 py-4">{d.designation}</td>
+                  <td className="px-6 py-4">{d.date_of_joining}</td>
+                  <td className="px-6 py-4">{d.tl_cost_center}</td>
                   {/* <td className="px-6 py-4">{d.truck_id}</td> */}
                 </tr>
               ))}

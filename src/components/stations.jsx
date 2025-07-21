@@ -1,13 +1,20 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
+const Product = {
+  diesel: "bg-blue-100 text-blue-800",
+  petrol: "bg-red-100 text-red-800",
+  hobc: "bg-green-100 text-green-800",
+  other: "bg-gray-100 text-gray-800",
+};
+
 export default function Stations() {
   const [stations, setStations] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
-  const [search, setSearch]     = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
 
-  /* ─────────────────────────  fetch once on mount  ─────────────────────── */
+  // Fetch stations once on mount
   useEffect(() => {
     let mounted = true;
 
@@ -16,15 +23,10 @@ export default function Stations() {
         setLoading(true);
         setError(null);
 
-        // Optional auth header
-        // const token   = localStorage.getItem("token");
-        // const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const headers = {};
-
-        const { data } = await axios.get(
-          "http://127.0.0.1:8000/stations/",
-          { headers }
-        );
+        const { data } = await axios.get("http://127.0.0.1:8000/stations/", {
+          headers,
+        });
 
         console.log("Station data from API:", data);
         if (mounted) setStations(data);
@@ -41,19 +43,18 @@ export default function Stations() {
     };
   }, []);
 
-  /* ──────────────────────────  search filter  ──────────────────────────── */
+  // Safe search filter
   const filteredStations = useMemo(() => {
     return stations.filter((s) =>
-      s.station_name.toLowerCase().includes(search.toLowerCase())
+      (s?.station_name || "").toLowerCase().includes(search.toLowerCase())
     );
   }, [stations, search]);
 
-  /* ────────────────────────────  render  ───────────────────────────────── */
   return (
     <section className="overflow-y-auto bg-gray-50 p-8 h-full">
       <h1 className="text-2xl font-semibold mb-6">Stations Overview</h1>
 
-      {/* search bar + add btn */}
+      {/* Search + Add Button */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
         <div className="relative">
           <span className="absolute left-3 top-2.5 text-gray-400">
@@ -77,7 +78,7 @@ export default function Stations() {
         </button>
       </div>
 
-      {/* table */}
+      {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         {loading ? (
           <div className="p-8 text-center">Loading…</div>
@@ -89,36 +90,45 @@ export default function Stations() {
           <table className="min-w-full text-sm text-gray-700">
             <thead>
               <tr className="border-b bg-gray-100 text-left text-xs uppercase tracking-wider">
+                <th className="px-6 py-3 font-semibold">ERP code</th>
                 <th className="px-6 py-3 font-semibold">Name</th>
                 <th className="px-6 py-3 font-semibold">Capacity</th>
-                <th className="px-6 py-3 font-semibold">Operational Window</th>
+                <th className="px-6 py-3 font-semibold">Default Supply Depot</th>
                 <th className="px-6 py-3 font-semibold">Address</th>
-                <th className="px-6 py-3 font-semibold">Fuel Types Required</th>
-                <th className="px-6 py-3 font-semibold">Depot ID</th>
-                <th className="px-6 py-3 font-semibold">Critical Level</th>
-                <th className="px-6 py-3 font-semibold">Dry Stock Level</th>
+                <th className="px-6 py-3 font-semibold">Product</th>
+                <th className="px-6 py-3 font-semibold">Monthly average sales</th>
+                <th className="px-6 py-3 font-semibold">Deadstock</th>
+                <th className="px-6 py-3 font-semibold">Tank number</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStations.map((s) => (
-                <tr
-                  key={`${s.station_name}-${s.depot_id}`}
-                  className="border-b last:border-0 hover:bg-gray-50"
-                >
-                  <td className="px-6 py-4">{s.station_name}</td>
-                  <td className="px-6 py-4">{s.capacity}</td>
-                  <td className="px-6 py-4">{s.operational_window}</td>
-                  <td className="px-6 py-4">{s.station_address}</td>
-                  <td className="px-6 py-4 whitespace-pre-wrap">
-                    {Array.isArray(s.fuel_types_required)
-                      ? s.fuel_types_required.join(", ")
-                      : s.fuel_types_required}
-                  </td>
-                  <td className="px-6 py-4">{s.depot_id}</td>
-                  <td className="px-6 py-4">{s.critical_level}</td>
-                  <td className="px-6 py-4">{s.dry_stock_level}</td>
-                </tr>
-              ))}
+              {filteredStations.map((s) => {
+                const productType = s.product?.toLowerCase() || "other";
+                const badgeClass = Product[productType] || Product.other;
+
+                return (
+                  <tr
+                    key={s.erp_code}
+                    className="border-b last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4">{s.erp_code}</td>
+                    <td className="px-6 py-4">{s.site_name}</td>
+                    <td className="px-6 py-4">{s.capacity}</td>
+                    <td className="px-6 py-4">{s.supply_depot}</td>
+                    <td className="px-6 py-4">{s.address}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${badgeClass}`}
+                      >
+                        {s.product}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">{s.monthly_avg_sales}</td>
+                    <td className="px-6 py-4">{s.deadstock}</td>
+                    <td className="px-6 py-4">{s.tank_no}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
