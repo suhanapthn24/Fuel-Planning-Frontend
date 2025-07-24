@@ -3,28 +3,29 @@ import axios from "axios";
 
 export default function AddStationCard({ onSuccess }) {
   const [form, setForm] = useState({
-    station_id: "",
-    station_name: "",
+    erp_code: "",
+    site_name: "",
+    address: "",
+    latitude: "",
+    longitude: "",
+    supply_depot: "",
+    tank_no: "",
+    product: "",
     capacity: "",
-    operational_window: "",
-    station_address: "",
-    fuel_types_required: "",
-    depot_id: "",
-    critical_level: "",
-    dry_stock_level: "",
-    estimated_delivery_duration: "",
+    monthly_avg_sales: "",
+    deadstock: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // When station_address changes, fetch lat/lng
+  // Geocoding
   useEffect(() => {
     const fetchLatLng = async () => {
-      if (!form.station_address) return;
+      if (!form.address) return;
 
       try {
-        const encodedAddress = encodeURIComponent(form.station_address);
+        const encodedAddress = encodeURIComponent(form.address);
         const apiKey = "YOUR_GOOGLE_MAPS_API_KEY";
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
 
@@ -34,8 +35,8 @@ export default function AddStationCard({ onSuccess }) {
         if (location) {
           setForm((f) => ({
             ...f,
-            station_latitude: location.lat,
-            station_longitude: location.lng,
+            latitude: location.lat,
+            longitude: location.lng,
           }));
           setError(null);
         } else {
@@ -46,79 +47,76 @@ export default function AddStationCard({ onSuccess }) {
       }
     };
 
-    // Debounce the API call by 500ms to avoid too many calls while typing
     const timeoutId = setTimeout(fetchLatLng, 500);
     return () => clearTimeout(timeoutId);
-  }, [form.station_address]);
+  }, [form.address]);
 
-  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // For fuel_types_required, allow comma-separated strings which we convert to array
-    if (name === "fuel_types_required") {
-      setForm((f) => ({
-        ...f,
-        [name]: value,
-      }));
-    } else {
-      setForm((f) => ({
-        ...f,
-        [name]: value,
-      }));
-    }
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields simply
-    if (
-      !form.station_id ||
-      !form.station_name ||
-      !form.capacity ||
-      !form.operational_window ||
-      !form.station_address ||
-      !form.depot_id ||
-      !form.critical_level ||
-      !form.dry_stock_level ||
-      !form.estimated_delivery_duration
-    ) {
-      setError("Please fill in all required fields and valid address.");
-      return;
+    const requiredFields = [
+      "erp_code",
+      "site_name",
+      "address",
+      "latitude",
+      "longitude",
+      "supply_depot",
+      "product",
+      "capacity",
+      "monthly_avg_sales",
+      "deadstock",
+    ];
+
+    for (const field of requiredFields) {
+      if (!form[field]) {
+        setError("Please fill in all required fields.");
+        return;
+      }
     }
 
-    setLoading(true);
-    setError(null);
+    const payload = {
+      ...form,
+      capacity: parseInt(form.capacity),
+      monthly_avg_sales: parseFloat(form.monthly_avg_sales),
+      deadstock: parseFloat(form.deadstock),
+      latitude: parseFloat(form.latitude),
+      longitude: parseFloat(form.longitude),
+    };
 
     try {
-      // Prepare payload with fuel_types_required as array
-      const payload = {
-        ...form,
-        capacity: Number(form.capacity),
-        critical_level: parseFloat(form.critical_level),
-        dry_stock_level: parseFloat(form.dry_stock_level),
-        estimated_delivery_duration: parseFloat(form.estimated_delivery_duration),
-        fuel_types_required: form.fuel_types_required
-          ? form.fuel_types_required.split(",").map((s) => s.trim())
-          : [],
-      };
+      setLoading(true);
+      setError(null);
 
-      const res = await axios.post("http://127.0.0.1:8000/stations/", payload);
+      const token = localStorage.getItem("token");
+      const res = await axios.post("http://127.0.0.1:8000/stations/", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (res.status === 200 || res.status === 201) {
-        if (onSuccess) onSuccess();
         alert("Station added successfully!");
+        if (onSuccess) onSuccess();
         setForm({
-          station_id: "",
-          station_name: "",
+          erp_code: "",
+          site_name: "",
+          address: "",
+          latitude: "",
+          longitude: "",
+          supply_depot: "",
+          tank_no: "",
+          product: "",
           capacity: "",
-          operational_window: "",
-          station_address: "",
-          fuel_types_required: "",
-          depot_id: "",
-          critical_level: "",
-          dry_stock_level: "",
-          estimated_delivery_duration: "",
+          monthly_avg_sales: "",
+          deadstock: "",
         });
       } else {
         setError("Failed to add station.");
@@ -136,152 +134,46 @@ export default function AddStationCard({ onSuccess }) {
       <h2 className="text-xl font-semibold mb-4">Add New Station</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Station ID */}
-        <div>
-          <label className="block font-medium mb-1">Station ID *</label>
-          <input
-            name="station_id"
-            value={form.station_id}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
+        {[
+          { name: "erp_code", label: "ERP Code *" },
+          { name: "site_name", label: "Site Name *" },
+          { name: "address", label: "Address *" },
+          { name: "supply_depot", label: "Supply Depot *" },
+          { name: "tank_no", label: "Tank No (optional)" },
+          { name: "product", label: "Product *" },
+          { name: "capacity", label: "Capacity *", type: "number" },
+          { name: "monthly_avg_sales", label: "Monthly Avg Sales *", type: "number", step: "0.01" },
+          { name: "deadstock", label: "Deadstock *", type: "number", step: "0.01" },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className="block font-medium mb-1">{field.label}</label>
+            <input
+              name={field.name}
+              value={form[field.name]}
+              onChange={handleChange}
+              type={field.type || "text"}
+              step={field.step}
+              className="w-full border rounded px-3 py-2"
+              required={field.label.includes("*")}
+            />
+          </div>
+        ))}
+
+        {/* Lat/Lng (hidden or optional display) */}
+        <div className="text-sm text-gray-500">
+          Latitude: {form.latitude || "N/A"} <br />
+          Longitude: {form.longitude || "N/A"}
         </div>
 
-        {/* Station Name */}
-        <div>
-          <label className="block font-medium mb-1">Station Name *</label>
-          <input
-            name="station_name"
-            value={form.station_name}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
+        {error && <p className="text-red-600">{error}</p>}
 
-        {/* Capacity */}
-        <div>
-          <label className="block font-medium mb-1">Capacity *</label>
-          <input
-            name="capacity"
-            type="number"
-            min="0"
-            value={form.capacity}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Operational Window */}
-        <div>
-          <label className="block font-medium mb-1">Operational Window *</label>
-          <input
-            name="operational_window"
-            value={form.operational_window}
-            onChange={handleChange}
-            placeholder="e.g. 6:00 AM - 10:00 PM"
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Address */}
-        <div>
-          <label className="block font-medium mb-1">Station Address *</label>
-          <input
-            name="station_address"
-            value={form.station_address}
-            onChange={handleChange}
-            placeholder="Full station address"
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Fuel Types Required */}
-        <div>
-          <label className="block font-medium mb-1">
-            Fuel Types Required (comma separated)
-          </label>
-          <input
-            name="fuel_types_required"
-            value={form.fuel_types_required}
-            onChange={handleChange}
-            placeholder="e.g. diesel, petrol"
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        {/* Depot ID */}
-        <div>
-          <label className="block font-medium mb-1">Depot ID *</label>
-          <input
-            name="depot_id"
-            value={form.depot_id}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Critical Level */}
-        <div>
-          <label className="block font-medium mb-1">Critical Level *</label>
-          <input
-            name="critical_level"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.critical_level}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Dry Stock Level */}
-        <div>
-          <label className="block font-medium mb-1">Dry Stock Level *</label>
-          <input
-            name="dry_stock_level"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.dry_stock_level}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Estimated Delivery Duration */}
-        <div>
-          <label className="block font-medium mb-1">Estimated Delivery Duration (hours) *</label>
-          <input
-            name="estimated_delivery_duration"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.estimated_delivery_duration}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-        </div>
-
-        {/* Submit Button */}
-        <div>
-          {error && <p className="text-red-600 mb-2">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            {loading ? "Saving..." : "Add Station"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          {loading ? "Saving..." : "Add Station"}
+        </button>
       </form>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import Navbar from "./navbar";
@@ -43,6 +44,15 @@ export default function Dashboard() {
   const [trips, setTrips] = useState([]);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/", { replace: true }); 
+    }
+  }, [navigate]);
 
   const excelDownloadUrl =
     "https://docs.google.com/spreadsheets/d/1cpl4X28sLhX8XtxgvlJVFPhJ6pEJz3nTV4LWBVmNorM/edit?gid=0#gid=0";

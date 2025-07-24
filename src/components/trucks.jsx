@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Assuming you're using React Router
 
 const truckTypeColors = {
   rigid: "bg-blue-100 text-blue-800",
@@ -9,8 +10,10 @@ const truckTypeColors = {
 export default function Trucks() {
   const [trucks, setTrucks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-  const [search,  setSearch]  = useState("");
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -20,14 +23,18 @@ export default function Trucks() {
         setLoading(true);
         setError(null);
 
-        // const token   = localStorage.getItem("token");
-        // const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const headers = {};
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          // Redirect if not logged in
+          navigate("/");
+          return;
+        }
 
-        const { data } = await axios.get(
-          "http://127.0.0.1:8000/trucks/",
-          { headers }
-        );
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const { data } = await axios.get("http://127.0.0.1:8000/trucks/", {
+          headers,
+        });
 
         console.log("Truck data:", data);
         if (mounted) setTrucks(data);
@@ -39,10 +46,11 @@ export default function Trucks() {
       }
     })();
 
-    return () => { mounted = false; };
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
 
-  /* search by registration # or type */
   const filtered = useMemo(() => {
     return trucks.filter((t) =>
       `${t.registration_number} ${t.truck_type}`

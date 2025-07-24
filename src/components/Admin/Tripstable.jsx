@@ -15,7 +15,19 @@ export function TripsTable({ searchQuery, filters }) {
   });
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/trips")
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      console.error("No access token found.");
+      setLoading(false);
+      return;
+    }
+
+    fetch("http://127.0.0.1:8000/trips", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();

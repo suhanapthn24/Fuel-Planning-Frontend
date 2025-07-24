@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const licenseTypeColors = {
@@ -15,6 +16,14 @@ export default function Drivers() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [search,  setSearch]  = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        navigate("/", { replace: true }); // redirect to login
+      }
+    }, [navigate]);
 
   /* ── fetch once ─────────────────────────────────────────────────────── */
   useEffect(() => {
@@ -25,9 +34,9 @@ export default function Drivers() {
         setLoading(true);
         setError(null);
 
-        // const token   = localStorage.getItem("token");
-        // const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const headers = {};
+        const token   = localStorage.getItem("access_token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        // const headers = {};
 
         const { data } = await axios.get(
           "http://127.0.0.1:8000/drivers/?skip=0&limit=100",

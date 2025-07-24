@@ -50,7 +50,20 @@ function useCount(endpoint) {
 
   useEffect(() => {
     let isMounted = true;
-    fetch(`${API_BASE}${endpoint}`)
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      console.error("Access token not found.");
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_BASE}${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Network error");
         return res.json();
@@ -58,6 +71,7 @@ function useCount(endpoint) {
       .then((data) => isMounted && setCount(data.length || 0))
       .catch(() => isMounted && setError(true))
       .finally(() => isMounted && setLoading(false));
+
     return () => (isMounted = false);
   }, [endpoint]);
 

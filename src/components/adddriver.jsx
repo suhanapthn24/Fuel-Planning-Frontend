@@ -2,36 +2,34 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const LICENSE_TYPES = [
-  "commercial",
-  "heavy_vehicle",
-  "light_vehicle",
-  "trailer",
-  "tanker",
-  "other",
-];
 
 export default function AddDriverCard({ onSuccess }) {
-  const [trucks, setTrucks] = useState([]);
   const [form, setForm] = useState({
     driver_id: "",
     driver_name: "",
-    license_number: "",
-    license_type: "",
-    driver_phone: "",
-    truck_id: "",          // optional – can be empty if not yet assigned
+    designation: "",
+    date_of_joining: "",
+    tl_cost_center: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [emailId, setEmailId] = useState("");
 
-  /* ───────────── fetch available trucks for dropdown ───────────── */
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await axios.get(`${API_BASE}/trucks/`);
-        setTrucks(data);
+        const identifier = localStorage.getItem("userEmail");
+        const token = localStorage.getItem("access_token");
+
+        const { data: userData } = await axios.get(`${API_BASE}/user/${identifier}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setEmailId(userData.email || "");
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching user info:", err);
       }
     })();
   }, []);
@@ -43,26 +41,42 @@ export default function AddDriverCard({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const required = ["driver_id", "driver_name", "license_number", "license_type", "driver_phone"];
+    const required = ["driver_id", "driver_name", "designation", "date_of_joining"];
     if (required.some((k) => !form[k])) {
       setError("Please fill all required fields.");
       return;
     }
-    setLoading(true); setError(null);
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const res = await axios.post(`${API_BASE}/drivers/`, form);
+      const token = localStorage.getItem("access_token");
+      const payload = {
+        ...form,
+        email_id: emailId || undefined,
+      };
+      if (!payload.tl_cost_center) delete payload.tl_cost_center;
+
+      const res = await axios.post(`${API_BASE}/drivers/`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (res.status === 200 || res.status === 201) {
         alert("Driver added successfully!");
         onSuccess?.();
         setForm({
           driver_id: "",
           driver_name: "",
-          license_number: "",
-          license_type: "",
-          driver_phone: "",
-          truck_id: "",
+          designation: "",
+          date_of_joining: "",
+          tl_cost_center: "",
         });
-      } else setError("Failed to add driver.");
+      } else {
+        setError("Failed to add driver.");
+      }
     } catch (err) {
       console.error(err);
       setError("Error while adding driver.");
@@ -78,8 +92,7 @@ export default function AddDriverCard({ onSuccess }) {
         {[
           ["driver_id", "Driver ID *"],
           ["driver_name", "Driver Name *"],
-          ["license_number", "License Number *"],
-          ["driver_phone", "Phone *"],
+          ["designation", "Designation *"],
         ].map(([name, label]) => (
           <div key={name}>
             <label className="block font-medium mb-1">{label}</label>
@@ -93,41 +106,26 @@ export default function AddDriverCard({ onSuccess }) {
           </div>
         ))}
 
-        {/* License type select */}
         <div>
-          <label className="block font-medium mb-1">License Type *</label>
-          <select
-            name="license_type"
-            value={form.license_type}
+          <label className="block font-medium mb-1">Date of Joining *</label>
+          <input
+            name="date_of_joining"
+            type="date"
+            value={form.date_of_joining}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
             required
-          >
-            <option value="">Select type</option>
-            {LICENSE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
-        {/* Truck dropdown – optional */}
         <div>
-          <label className="block font-medium mb-1">Assign Truck (optional)</label>
-          <select
-            name="truck_id"
-            value={form.truck_id}
+          <label className="block font-medium mb-1">TL Cost Center (optional)</label>
+          <input
+            name="tl_cost_center"
+            value={form.tl_cost_center}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
-          >
-            <option value="">— None —</option>
-            {trucks.map((t) => (
-              <option key={t.truck_id} value={t.truck_id}>
-                {t.truck_id} — {t.registration_number}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         {error && <p className="text-red-600">{error}</p>}

@@ -2,40 +2,50 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const GOOGLE_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";  
+const GOOGLE_API_KEY = "AIzaSyA26SLopuCcY_MNgtC9vIk4KffEmEaDhDI&center=18.5204,73.8567";
 
 export default function AddDepotCard({ onSuccess }) {
   const [form, setForm] = useState({
     depot_id: "",
     depot_name: "",
+    depot_code: "",
+    tank: "",
+    product: "",
+    capacity: "",
+    bay_1: "inactive",
+    bay_2: "inactive",
+    bay_3: "inactive",
+    bay_4: "inactive",
+    bay_5: "inactive",
+    admin: "",
+    opening_hours: "",
     depot_address: "",
-    fuel_types_available: "",
-    bay_available: "",
-    depot_latitude: "",
-    depot_longitude: "",
+    latitude: "",
+    longitude: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /* ───────────── Fetch lat/lng whenever depot_address changes ─────────── */
   useEffect(() => {
     if (!form.depot_address) return;
     const timeoutId = setTimeout(async () => {
       try {
-        const url =
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-            form.depot_address
-          )}&key=${GOOGLE_API_KEY}`;
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+          form.depot_address
+        )}&key=${GOOGLE_API_KEY}`;
         const { data } = await axios.get(url);
         const loc = data.results?.[0]?.geometry?.location;
         if (loc) {
-          setForm((f) => ({ ...f, depot_latitude: loc.lat, depot_longitude: loc.lng }));
+          setForm((f) => ({ ...f, latitude: loc.lat, longitude: loc.lng }));
           setError(null);
-        } else setError("Could not find coordinates for this address.");
+        } else {
+          setError("Could not find coordinates for this address.");
+        }
       } catch (err) {
         setError("Error fetching location data.");
       }
-    }, 500);              // debounce
+    }, 500);
     return () => clearTimeout(timeoutId);
   }, [form.depot_address]);
 
@@ -46,42 +56,59 @@ export default function AddDepotCard({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    /* rudimentary required‑field check */
-    const required = [
+    const requiredFields = [
       "depot_id",
       "depot_name",
+      "depot_code",
       "depot_address",
-      "fuel_types_available",
-      "bay_available",
-      "depot_latitude",
-      "depot_longitude",
+      "latitude",
+      "longitude",
+      "bay_1",
+      "bay_2",
+      "bay_3",
+      "bay_4",
+      "bay_5",
     ];
-    if (required.some((k) => !form[k])) {
-      setError("Please fill in all required fields and wait for geocoding.");
+
+    if (requiredFields.some((k) => !form[k])) {
+      setError("Please fill all required fields and wait for geolocation.");
       return;
     }
-    setLoading(true); setError(null);
+
+    setLoading(true);
+    setError(null);
     try {
-      const payload = {
-        ...form,
-        fuel_types_available: form.fuel_types_available
-          .split(",")
-          .map((s) => s.trim()),
-      };
-      const res = await axios.post(`${API_BASE}/depots/`, payload);
+      const token = localStorage.getItem("access_token");
+      const res = await axios.post(`${API_BASE}/depots/`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (res.status === 200 || res.status === 201) {
         alert("Depot added successfully!");
         onSuccess?.();
         setForm({
           depot_id: "",
           depot_name: "",
+          depot_code: "",
+          tank: "",
+          product: "",
+          capacity: "",
+          bay_1: "inactive",
+          bay_2: "inactive",
+          bay_3: "inactive",
+          bay_4: "inactive",
+          bay_5: "inactive",
+          admin: "",
+          opening_hours: "",
           depot_address: "",
-          fuel_types_available: "",
-          bay_available: "",
-          depot_latitude: "",
-          depot_longitude: "",
+          latitude: "",
+          longitude: "",
         });
-      } else setError("Failed to add depot.");
+      } else {
+        setError("Failed to add depot.");
+      }
     } catch (err) {
       console.error(err);
       setError("Error while adding depot.");
@@ -97,9 +124,13 @@ export default function AddDepotCard({ onSuccess }) {
         {[
           ["depot_id", "Depot ID *"],
           ["depot_name", "Depot Name *"],
+          ["depot_code", "Depot Code *"],
+          ["tank", "Tank"],
+          ["product", "Product"],
+          ["capacity", "Capacity"],
+          ["admin", "Admin"],
+          ["opening_hours", "Opening Hours"],
           ["depot_address", "Depot Address *"],
-          ["fuel_types_available", "Fuel Types Available (comma separated) *"],
-          ["bay_available", "Bay Available *"],
         ].map(([name, label]) => (
           <div key={name}>
             <label className="block font-medium mb-1">{label}</label>
@@ -108,10 +139,28 @@ export default function AddDepotCard({ onSuccess }) {
               value={form[name]}
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
-              required
+              required={label.includes("*")}
             />
           </div>
         ))}
+
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5].map((num) => (
+            <div key={`bay_${num}`}>
+              <label className="block font-medium mb-1">Bay {num} *</label>
+              <select
+                name={`bay_${num}`}
+                value={form[`bay_${num}`]}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2"
+                required
+              >
+                <option value="inactive">Inactive</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
+          ))}
+        </div>
 
         {error && <p className="text-red-600">{error}</p>}
         <button

@@ -28,7 +28,7 @@ const endpointMap = {
 
 function StationListTooltip({ stations }) {
   return (
-    <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-72 max-h-64 overflow-auto rounded-lg bg-black bg-opacity-90 p-4 text-xs text-white shadow-lg">
+    <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-72 max-h-64 overflow-auto rounded-xl bg-gray-900 bg-opacity-90 p-4 text-xs text-white shadow-xl backdrop-blur-md transition-all duration-300">
       <ul className="space-y-2">
         {stations.map((station) => (
           <li key={station.station_id || station.id} className="break-words">
@@ -56,8 +56,13 @@ function RingCard({ title, count, tint = "#60a5fa", stations = [] }) {
     >
       {/* Circular ring */}
       <svg viewBox="0 0 36 36" className="w-20 h-20 mb-5">
+        <defs>
+          <linearGradient id={`gradient-${title}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={tint} stopOpacity="0.6" />
+            <stop offset="100%" stopColor={tint} stopOpacity="1" />
+          </linearGradient>
+        </defs>
         <path
-          className="text-gray-200"
           d="M18 2.0845
               a 15.9155 15.9155 0 0 1 0 31.831
               a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -66,7 +71,7 @@ function RingCard({ title, count, tint = "#60a5fa", stations = [] }) {
           strokeWidth="3"
         />
         <path
-          stroke={tint}
+          stroke={`url(#gradient-${title})`}
           strokeWidth="3"
           strokeDasharray={`${count}, 100`}
           strokeLinecap="round"
@@ -78,7 +83,7 @@ function RingCard({ title, count, tint = "#60a5fa", stations = [] }) {
         <text
           x="18"
           y="20.35"
-          className="text-gray-800 text-xl font-semibold"
+          className="text-gray-800 text-[0.9rem] font-bold"
           textAnchor="middle"
           alignmentBaseline="central"
         >
@@ -105,8 +110,15 @@ export default function PredictiveStations() {
     setError(null);
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Missing access token");
+
         const { url } = endpointMap[activeView];
-        const res = await axios.get(url);
+        const res = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setPredictions(res.data);
       } catch (err) {
         console.error("Failed to fetch station data:", err);
@@ -134,10 +146,10 @@ export default function PredictiveStations() {
           <button
             key={key}
             onClick={() => setActiveView(key)}
-            className={`px-6 py-2 rounded-lg font-semibold transition-shadow duration-300 focus:outline-none ${
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 shadow-sm ${
               activeView === key
-                ? "bg-blue-600 text-white shadow-lg"
-                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+                ? "bg-blue-600 text-white shadow-md scale-105"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-blue-100"
             }`}
           >
             {label}
@@ -158,29 +170,26 @@ export default function PredictiveStations() {
           {error}
         </div>
       ) : (
-        <>
-          {/* Summary rings */}
-          <div className="flex justify-center gap-12 mb-16 flex-wrap">
-            <RingCard
-              title="At Risk"
-              count={atRiskStations.length}
-              tint="#fca5a5" // muted red pastel
-              stations={atRiskStations}
-            />
-            <RingCard
-              title="Stable"
-              count={stableStations.length}
-              tint="#6ee7b7" // muted green pastel
-              stations={stableStations}
-            />
-            <RingCard
-              title="Total"
-              count={predictions.length}
-              tint="#93c5fd" // muted blue pastel
-              stations={predictions}
-            />
-          </div>
-        </>
+        <div className="flex justify-center gap-12 mb-16 flex-wrap">
+          <RingCard
+            title="At Risk"
+            count={atRiskStations.length}
+            tint="#fca5a5"
+            stations={atRiskStations}
+          />
+          <RingCard
+            title="Stable"
+            count={stableStations.length}
+            tint="#6ee7b7"
+            stations={stableStations}
+          />
+          <RingCard
+            title="Total"
+            count={predictions.length}
+            tint="#93c5fd"
+            stations={predictions}
+          />
+        </div>
       )}
     </div>
   );

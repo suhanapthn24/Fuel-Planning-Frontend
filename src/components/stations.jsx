@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Product = {
   diesel: "bg-blue-100 text-blue-800",
@@ -13,37 +14,49 @@ export default function Stations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  // Fetch stations once on mount
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
+    const fetchStations = async () => {
+      const token = localStorage.getItem("access_token"); // or sessionStorage
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        const headers = {};
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
         const { data } = await axios.get("http://127.0.0.1:8000/stations", {
           headers,
         });
 
-        console.log("Station data from API:", data);
         if (mounted) setStations(data);
       } catch (err) {
         console.error("Error fetching stations:", err);
         if (mounted) setError("Failed to fetch stations");
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          navigate("/login");
+        }
       } finally {
         if (mounted) setLoading(false);
       }
-    })();
+    };
+
+    fetchStations();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [navigate]);
 
-  // Safe search filter
   const filteredStations = useMemo(() => {
     return stations.filter((s) =>
       (s?.station_name || "").toLowerCase().includes(search.toLowerCase())

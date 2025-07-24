@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -18,8 +18,46 @@ export default function AddTruckCard({ onSuccess }) {
     compartment_size_5: "",
     available: true,
   });
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // 🔁 Fetch user_id from backend by identifier (email/username/phone)
+  useEffect(() => {
+    const identifier = localStorage.getItem("userEmail") || localStorage.getItem("username") || localStorage.getItem("phone");
+    const token = localStorage.getItem("access_token");
+
+    if (!identifier || !token) {
+      setError("User not logged in or access token missing.");
+      return;
+    }
+
+    const fetchUserId = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/users/${identifier}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: { identifier },
+        });
+
+        if (res.data && res.data.user_id) {
+          setUserId(res.data.user_id);
+        } else {
+          setError("User not found.");
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 401) {
+          setError("Unauthorized. Please log in again.");
+        } else {
+          setError("Failed to fetch user details.");
+        }
+      }
+    };
+
+    fetchUserId();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -29,8 +67,25 @@ export default function AddTruckCard({ onSuccess }) {
     }));
   };
 
+  useEffect(() => {
+    const count = Number(form.compartments);
+    if (count >= 1 && count <= 5) {
+      const updated = { ...form };
+      for (let i = count + 1; i <= 5; i++) {
+        updated[`compartment_size_${i}`] = "";
+      }
+      setForm(updated);
+    }
+  }, [form.compartments]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!userId) {
+      setError("User ID is missing.");
+      return;
+    }
+
     const required = [
       "truck_id",
       "registration_number",
@@ -39,34 +94,57 @@ export default function AddTruckCard({ onSuccess }) {
       "total_capacity",
       "compartment_size_1",
     ];
+
     if (required.some((k) => !form[k])) {
-      setError("Please fill all required fields. Compartment 1 size cannot be empty.");
+      setError("Please fill all required fields. Compartment 1 size is mandatory.");
       return;
     }
 
-    /* quick check: compartments count matches filled sizes */
-    if (Number(form.compartments) < 1 || Number(form.compartments) > 5) {
+    const compartments = Number(form.compartments);
+    if (compartments < 1 || compartments > 5) {
       setError("Compartments must be between 1 and 5.");
       return;
     }
-    setLoading(true); setError(null);
+
+    const compSizes = Array.from({ length: compartments }, (_, i) =>
+      parseInt(form[`compartment_size_${i + 1}`]) || 0
+    );
+    const totalCompartmentSize = compSizes.reduce((a, b) => a + b, 0);
+    if (totalCompartmentSize > parseFloat(form.total_capacity)) {
+      setError("Sum of compartment sizes cannot exceed total capacity.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const numericFields = [
-        "compartments",
-        "total_capacity",
-        "compartment_size_1",
-        "compartment_size_2",
-        "compartment_size_3",
-        "compartment_size_4",
-        "compartment_size_5",
-      ];
       const payload = {
-        ...form,
-        ...Object.fromEntries(
-          numericFields.map((k) => [k, form[k] === "" ? null : Number(form[k])])
-        ),
+        truck_id: form.truck_id,
+        registration_number: form.registration_number,
+        truck_type: form.truck_type, // "Rigid" or "Articulated"
+        compartments: parseInt(form.compartments),
+        total_capacity: parseFloat(form.total_capacity),
+        compartment_size_1: parseInt(form.compartment_size_1),
+        compartment_size_2: form.compartment_size_2 ? parseInt(form.compartment_size_2) : undefined,
+        compartment_size_3: form.compartment_size_3 ? parseInt(form.compartment_size_3) : undefined,
+        compartment_size_4: form.compartment_size_4 ? parseInt(form.compartment_size_4) : undefined,
+        compartment_size_5: form.compartment_size_5 ? parseInt(form.compartment_size_5) : undefined,
+        available: form.available ?? true, // or false as per checkbox
       };
-      const res = await axios.post(`${API_BASE}/trucks/`, payload);
+
+      for (let i = 1; i <= compartments; i++) {
+        const value = form[`compartment_size_${i}`];
+        if (value !== "") {
+          payload[`compartment_size_${i}`] = parseInt(value);
+        }
+      }
+
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await axios.post(`${API_BASE}/trucks/`, payload, { headers });
+
       if (res.status === 200 || res.status === 201) {
         alert("Truck added successfully!");
         onSuccess?.();
@@ -83,7 +161,9 @@ export default function AddTruckCard({ onSuccess }) {
           compartment_size_5: "",
           available: true,
         });
-      } else setError("Failed to add truck.");
+      } else {
+        setError("Failed to add truck.");
+      }
     } catch (err) {
       console.error(err);
       setError("Error while adding truck.");
@@ -91,6 +171,27 @@ export default function AddTruckCard({ onSuccess }) {
       setLoading(false);
     }
   };
+
+  const compartmentInputs = Array.from({ length: Number(form.compartments) || 0 }, (_, i) => {
+    const index = i + 1;
+    return (
+      <div key={`compartment_size_${index}`}>
+        <label className="block font-medium mb-1">
+          Compartment Size {index} (L){index === 1 ? " *" : ""}
+        </label>
+        <input
+          name={`compartment_size_${index}`}
+          type="number"
+          min="0"
+          step="1"
+          value={form[`compartment_size_${index}`]}
+          onChange={handleChange}
+          className="w-full border rounded px-3 py-2"
+          required={index === 1}
+        />
+      </div>
+    );
+  });
 
   return (
     <div className="bg-white rounded-lg shadow p-6 max-w-xl mx-auto">
@@ -112,7 +213,6 @@ export default function AddTruckCard({ onSuccess }) {
           </div>
         ))}
 
-        {/* Truck type */}
         <div>
           <label className="block font-medium mb-1">Truck Type *</label>
           <select
@@ -131,33 +231,37 @@ export default function AddTruckCard({ onSuccess }) {
           </select>
         </div>
 
-        {/* Numeric fields */}
-        {[
-          ["compartments", "Compartments (1‑5) *", "number", 1, 5, 1],
-          ["total_capacity", "Total Capacity (L) *", "number", 0, null, "0.01"],
-          ["compartment_size_1", "Compartment Size 1 (L) *", "number", 0, null, "0.01"],
-          ["compartment_size_2", "Compartment Size 2 (L)", "number", 0, null, "0.01"],
-          ["compartment_size_3", "Compartment Size 3 (L)", "number", 0, null, "0.01"],
-          ["compartment_size_4", "Compartment Size 4 (L)", "number", 0, null, "0.01"],
-          ["compartment_size_5", "Compartment Size 5 (L)", "number", 0, null, "0.01"],
-        ].map(([name, label, type, min, max, step]) => (
-          <div key={name}>
-            <label className="block font-medium mb-1">{label}</label>
-            <input
-              name={name}
-              type={type}
-              min={min}
-              max={max || undefined}
-              step={step}
-              value={form[name]}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-              required={name === "compartment_size_1"}
-            />
-          </div>
-        ))}
+        <div>
+          <label className="block font-medium mb-1">Compartments (1–5) *</label>
+          <input
+            name="compartments"
+            type="number"
+            min="1"
+            max="5"
+            step="1"
+            value={form.compartments}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            required
+          />
+        </div>
 
-        {/* Availability checkbox */}
+        <div>
+          <label className="block font-medium mb-1">Total Capacity (L) *</label>
+          <input
+            name="total_capacity"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.total_capacity}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            required
+          />
+        </div>
+
+        {compartmentInputs}
+
         <div className="flex items-center space-x-2">
           <input
             name="available"

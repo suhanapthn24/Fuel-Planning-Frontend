@@ -28,12 +28,53 @@ export default function Notifications() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await axios.get("/audit");
-        const enriched = response.data.map((note) => ({
-          ...note,
-          date: new Date(note.timestamp),
-          timeAgo: formatTimeAgo(note.timestamp),
-        }));
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.error("No access token found.");
+          return;
+        }
+
+        const response = await axios.get("http://localhost:8000/audit/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const raw = response.data.notifications || response.data;
+
+        const enriched = raw.map((entry) => {
+          const parsedAfter = entry.after ? JSON.parse(entry.after) : null;
+          const parsedBefore = entry.before ? JSON.parse(entry.before) : null;
+
+          let title = `${entry.action} - ${entry.table_name}`;
+          let description = "";
+
+          if (entry.action === "Create" && parsedAfter) {
+            description = `New entry created for ${parsedAfter.driver_name || parsedAfter.name || "unknown"} (ID: ${entry.row_id}) in ${entry.table_name}.`;
+          } else if (entry.action === "Update" && parsedBefore && parsedAfter) {
+            const changes = Object.keys(parsedAfter)
+              .filter((key) => parsedBefore[key] !== parsedAfter[key])
+              .map((key) => `${key}: "${parsedBefore[key]}" → "${parsedAfter[key]}"`)
+              .join(", ");
+            description = `Updated ${parsedAfter.driver_name || parsedAfter.name || "record"} — ${changes}`;
+          } else if (entry.action === "Delete" && parsedBefore) {
+            description = `Deleted entry for ${parsedBefore.driver_name || parsedBefore.name || "unknown"} (ID: ${entry.row_id})`;
+          } else {
+            description = `Audit log for ${entry.table_name} with action ${entry.action}`;
+          }
+
+          return {
+            id: entry.audit_id,
+            type: "success", // You can change logic here if some are errors/warnings
+            title,
+            description,
+            timestamp: entry.timestamp,
+            date: new Date(entry.timestamp),
+            timeAgo: formatTimeAgo(entry.timestamp),
+            read: false,
+          };
+        });
+
         setNotifications(enriched);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
