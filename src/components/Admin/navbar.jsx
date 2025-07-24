@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import logo from "../assests/taj-logo.png";
 import { BellIcon } from "@heroicons/react/24/solid";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import UserDropdown from "../UserDropdown";  // Import here
 
 export default function Navbar() {
   const navItems = [
@@ -78,29 +79,8 @@ export default function Navbar() {
           <img src="" alt="User" className="h-8 w-8 object-cover" />
         </button>
 
-        {/* Dropdown */}
-        {showDropdown && (
-          <div className="absolute top-12 right-0 w-64 bg-red-600 text-white rounded shadow-lg z-50">
-            <div className="p-4 border-b border-red-500">
-              <div className="font-semibold text-lg">Station Admin</div>
-              <div className="text-sm">Mainstation01@Gmail.Com</div>
-            </div>
-            <div className="p-4 border-b border-red-500">
-              <div className="text-sm font-semibold">Organizations</div>
-              <div className="text-sm mt-1">🏢 Taj Fuel Station 1</div>
-              <div className="text-xs">TFS - 001</div>
-            </div>
-            <button
-              onClick={() => {
-                navigate("/profile");
-                setShowDropdown(false);
-              }}
-              className="w-full text-left px-4 py-2 hover:bg-red-500"
-            >
-              👤 My Profile
-            </button>
-          </div>
-        )}
+        {/* User Dropdown Component */}
+        {showDropdown && <UserDropdown onClose={() => setShowDropdown(false)} />}
       </div>
     </div>
   );

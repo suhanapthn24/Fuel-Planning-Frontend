@@ -24,7 +24,7 @@ export default function Stations() {
         setError(null);
 
         const headers = {};
-        const { data } = await axios.get("http://127.0.0.1:8000/stations/", {
+        const { data } = await axios.get("http://127.0.0.1:8000/stations", {
           headers,
         });
 
