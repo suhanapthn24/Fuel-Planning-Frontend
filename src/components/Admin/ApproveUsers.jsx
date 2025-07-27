@@ -1,17 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-/**
- * ApproveUsers.jsx –  Admin‑only page that lists all pending users and lets the admin approve them.
- *
- * Backend endpoints used (see src/routes/auth.py):
- *   GET  /auth/pending-users            – returns List[UserOut]
- *   POST /auth/approve-user/{user_id}   – sets is_approved = True
- *
- * Env:
- *   VITE_API_BASE_URL – optional, defaults to http://127.0.0.1:8000
- */
-
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function ApproveUsers() {
@@ -20,7 +9,7 @@ export default function ApproveUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [approving, setApproving] = useState({}); // userId → bool
+  const [approving, setApproving] = useState({}); 
 
   // Redirect non‑admins away.
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from "../assests/taj-logo.png";
+import logo from "../components/assests/taj-logo.png";
 import axios from 'axios';
 
 export default function Register() {

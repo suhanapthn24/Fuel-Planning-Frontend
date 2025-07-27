@@ -4,6 +4,7 @@ import { BellIcon } from "@heroicons/react/24/solid";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import UserDropdown from "../UserDropdown";  // Import here
 
+
 export default function Navbar() {
   const navItems = [
     { name: "Dashboard", path: "/dashboard" },
