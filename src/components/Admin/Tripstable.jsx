@@ -10,7 +10,7 @@ export function TripsTable({ searchQuery, filters }) {
   const [scheduleError, setScheduleError] = useState(null);
 
   const [sortConfig, setSortConfig] = useState({
-    key: "trip_id",
+    key: "delivery_schedule_id",
     direction: "asc",
   });
 
@@ -23,7 +23,7 @@ export function TripsTable({ searchQuery, filters }) {
       return;
     }
 
-    fetch("http://127.0.0.1:8000/trips", {
+    fetch("http://127.0.0.1:8000/delivery_schedules", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -60,6 +60,8 @@ export function TripsTable({ searchQuery, filters }) {
         return "bg-red-600 text-white px-2 py-1 rounded-full text-sm";
       case "scheduled":
         return "bg-yellow-400 text-black px-2 py-1 rounded-full text-sm";
+      case "cancelled":
+        return "bg-gray-500 text-white px-2 py-1 rounded-full text-sm";
       default:
         return "text-sm";
     }
@@ -71,7 +73,15 @@ export function TripsTable({ searchQuery, filters }) {
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter((trip) =>
-        [trip.trip_id, trip.driver_name, trip.origin, trip.destination, trip.trip_status]
+        [
+          trip.delivery_schedule_id,
+          trip.driver_name,
+          trip.origin,
+          trip.destination,
+          trip.delivery_schedule_status,
+          trip.username,
+          trip.email,
+        ]
           .map((v) => String(v ?? "").toLowerCase())
           .some((val) => val.includes(q))
       );
@@ -79,20 +89,26 @@ export function TripsTable({ searchQuery, filters }) {
 
     if (filters.status) {
       filtered = filtered.filter(
-        (trip) => (trip.trip_status || "").toLowerCase() === filters.status.toLowerCase()
+        (trip) =>
+          (trip.delivery_schedule_status || "").toLowerCase() ===
+          filters.status.toLowerCase()
       );
     }
 
     if (filters.driver) {
       filtered = filtered.filter(
-        (trip) => (trip.driver_name || "").toLowerCase() === filters.driver.toLowerCase()
+        (trip) =>
+          (trip.driver_name || "").toLowerCase() === filters.driver.toLowerCase()
       );
     }
 
     if (filters.route) {
       filtered = filtered.filter(
         (trip) =>
-          `${trip.origin} → ${trip.destination}`.toLowerCase() === filters.route.toLowerCase()
+          (Array.isArray(trip.route)
+            ? trip.route.join(" → ").toLowerCase()
+            : ""
+          ) === filters.route.toLowerCase()
       );
     }
 
@@ -123,7 +139,7 @@ export function TripsTable({ searchQuery, filters }) {
     setScheduleError(null);
     setDeliverySchedule(null);
 
-    fetch(`http://127.0.0.1:8000/delivery_schedules/?trip_id=${trip.trip_id}`)
+    fetch(`http://127.0.0.1:8000/delivery_schedules/?delivery_schedule_id=${trip.delivery_schedule_id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch delivery schedule");
         return res.json();
@@ -139,17 +155,17 @@ export function TripsTable({ searchQuery, filters }) {
   };
 
   const handleCancelTrip = (trip) => {
-    const confirmed = window.confirm(`Are you sure you want to cancel trip ${trip.trip_id}?`);
+    const confirmed = window.confirm(`Are you sure you want to cancel trip ${trip.delivery_schedule_id}?`);
     if (!confirmed) return;
 
-    const token = localStorage.getItem("token");
-    fetch(`http://127.0.0.1:8000/trips/${trip.trip_id}`, {
+    const token = localStorage.getItem("access_token");
+    fetch(`http://127.0.0.1:8000/delivery_schedules/${trip.delivery_schedule_id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ trip_status: "cancelled" }),
+      body: JSON.stringify({ delivery_schedule_status: "cancelled" }),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to cancel the trip");
@@ -158,14 +174,16 @@ export function TripsTable({ searchQuery, filters }) {
       .then((updatedTrip) => {
         setTrips((prev) =>
           prev.map((t) =>
-            t.trip_id === updatedTrip.trip_id ? { ...t, trip_status: "cancelled" } : t
+            t.delivery_schedule_id === updatedTrip.delivery_schedule_id
+              ? { ...t, delivery_schedule_status: "cancelled" }
+              : t
           )
         );
-        alert(`Trip ${trip.trip_id} cancelled successfully.`);
+        alert(`Trip ${trip.delivery_schedule_id} cancelled successfully.`);
       })
       .catch((err) => {
         console.error(err);
-        alert(`Failed to cancel trip ${trip.trip_id}`);
+        alert(`Failed to cancel trip ${trip.delivery_schedule_id}`);
       });
   };
 
@@ -182,8 +200,8 @@ export function TripsTable({ searchQuery, filters }) {
       <table className="min-w-full text-left border-collapse">
         <thead className="bg-gray-100 text-sm font-semibold">
           <tr>
-            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("trip_id")}>
-              Trip ID {sortConfig.key === "trip_id" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("delivery_schedule_id")}>
+              Trip ID {sortConfig.key === "delivery_schedule_id" && (sortConfig.direction === "asc" ? "▲" : "▼")}
             </th>
             <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("driver_name")}>
               Driver Name {sortConfig.key === "driver_name" && (sortConfig.direction === "asc" ? "▲" : "▼")}
@@ -191,14 +209,14 @@ export function TripsTable({ searchQuery, filters }) {
             <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("origin")}>
               Origin → Destination {sortConfig.key === "origin" && (sortConfig.direction === "asc" ? "▲" : "▼")}
             </th>
-            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("trip_status")}>
-              Status {sortConfig.key === "trip_status" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("delivery_schedule_status")}>
+              Status {sortConfig.key === "delivery_schedule_status" && (sortConfig.direction === "asc" ? "▲" : "▼")}
             </th>
-            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("eta")}>
-              ETA {sortConfig.key === "eta" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+            <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("hours_used")}>
+              Hours Used {sortConfig.key === "hours_used" && (sortConfig.direction === "asc" ? "▲" : "▼")}
             </th>
             <th className="px-4 py-3 cursor-pointer" onClick={() => requestSort("start_time")}>
-              Start Time/End Time {sortConfig.key === "start_time" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+              Start Time / End Time {sortConfig.key === "start_time" && (sortConfig.direction === "asc" ? "▲" : "▼")}
             </th>
             <th className="px-4 py-3">Scheduled Time</th>
             <th className="px-4 py-3">Live Tracking</th>
@@ -208,19 +226,22 @@ export function TripsTable({ searchQuery, filters }) {
         <tbody className="text-sm">
           {sortedTrips.map((trip, idx) => (
             <tr key={idx} className="border-t">
-              <td className="px-4 py-3">{trip.trip_id}</td>
+              <td className="px-4 py-3">{trip.delivery_schedule_id}</td>
               <td className="px-4 py-3">{trip.driver_name || "N/A"}</td>
-              <td className="px-4 py-3">{trip.origin} → {trip.destination}</td>
               <td className="px-4 py-3">
-                <span className={getStatusStyle(trip.trip_status)}>{trip.trip_status}</span>
+                {Array.isArray(trip.route) ? trip.route.join(" → ") : `${trip.origin} → ${trip.destination}`}
               </td>
-              <td className="px-4 py-3">{trip.eta ?? "N/A"}</td>
               <td className="px-4 py-3">
-                {trip.start_time ? new Date(trip.start_time).toLocaleString() : "N/A"}<br />
+                <span className={getStatusStyle(trip.delivery_schedule_status)}>{trip.delivery_schedule_status}</span>
+              </td>
+              <td className="px-4 py-3">{trip.hours_used?.toFixed(2) ?? "N/A"}</td>
+              <td className="px-4 py-3">
+                {trip.start_time ? new Date(trip.start_time).toLocaleString() : "N/A"}
+                <br />
                 {trip.end_time ? new Date(trip.end_time).toLocaleString() : "N/A"}
               </td>
               <td className="px-4 py-3">
-                {trip.schedule ? new Date(trip.schedule).toLocaleString() : "N/A"}
+                {trip.scheduled_time ? new Date(trip.scheduled_time).toLocaleString() : "N/A"}
               </td>
               <td className="px-4 py-3">
                 {trip.waze_url ? (
@@ -230,13 +251,20 @@ export function TripsTable({ searchQuery, filters }) {
                   >
                     Navigate
                   </button>
-                ) : "N/A"}
+                ) : (
+                  "N/A"
+                )}
               </td>
               <td className="px-4 py-3 space-x-2">
-                <button className="text-blue-600 hover:underline" onClick={() => viewDeliverySchedule(trip)}>View</button>
-                {trip.trip_status?.toLowerCase() !== "complete" && (
-                  <button className="text-red-500 hover:underline" onClick={() => handleCancelTrip(trip)}>Cancel</button>
-                )}
+                <button className="text-blue-600 hover:underline" onClick={() => viewDeliverySchedule(trip)}>
+                  View
+                </button>
+                {trip.delivery_schedule_status?.toLowerCase() !== "complete" &&
+                  trip.delivery_schedule_status?.toLowerCase() !== "cancelled" && (
+                    <button className="text-red-500 hover:underline" onClick={() => handleCancelTrip(trip)}>
+                      Cancel
+                    </button>
+                  )}
               </td>
             </tr>
           ))}
@@ -253,24 +281,56 @@ export function TripsTable({ searchQuery, filters }) {
               &times;
             </button>
 
-            <h3 className="text-xl font-semibold mb-4">
-              Trip Details: {viewingTrip.trip_id}
-            </h3>
+            <h3 className="text-xl font-semibold mb-4">Trip Details: {viewingTrip.delivery_schedule_id}</h3>
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <p><strong>Trip ID:</strong> {viewingTrip.trip_id}</p>
-              <p><strong>Driver Name:</strong> {viewingTrip.driver_name}</p>
-              <p><strong>Driver ID:</strong> {viewingTrip.driver_id}</p>
-              <p><strong>Truck ID:</strong> {viewingTrip.truck_id}</p>
-              <p><strong>Status:</strong> {viewingTrip.trip_status}</p>
-              <p><strong>Depot ID:</strong> {viewingTrip.depot_id}</p>
-              <p><strong>Origin:</strong> {viewingTrip.origin}</p>
-              <p><strong>Destination:</strong> {viewingTrip.destination}</p>
-              <p><strong>ETA:</strong> {viewingTrip.eta}</p>
-              <p><strong>Scheduled Time:</strong> {new Date(viewingTrip.schedule).toLocaleString()}</p>
-              <p><strong>Start Time:</strong> {viewingTrip.start_time ? new Date(viewingTrip.start_time).toLocaleString() : "N/A"}</p>
-              <p><strong>End Time:</strong> {viewingTrip.end_time ? new Date(viewingTrip.end_time).toLocaleString() : "N/A"}</p>
-              <p><strong>Delivered Liters:</strong> {viewingTrip.delivered_liters}</p>
+              <p>
+                <strong>Trip ID:</strong> {viewingTrip.delivery_schedule_id}
+              </p>
+              <p>
+                <strong>Driver Name:</strong> {viewingTrip.driver_name}
+              </p>
+              <p>
+                <strong>Driver ID:</strong> {viewingTrip.driver_id}
+              </p>
+              <p>
+                <strong>Username:</strong> {viewingTrip.username}
+              </p>
+              <p>
+                <strong>Email:</strong> {viewingTrip.email}
+              </p>
+              <p>
+                <strong>Truck ID:</strong> {viewingTrip.truck_id}
+              </p>
+              <p>
+                <strong>Depot Number:</strong> {viewingTrip.depot_number}
+              </p>
+              <p>
+                <strong>Status:</strong> {viewingTrip.delivery_schedule_status}
+              </p>
+              <p>
+                <strong>Origin:</strong> {viewingTrip.origin}
+              </p>
+              <p>
+                <strong>Destination:</strong> {viewingTrip.destination}
+              </p>
+              <p>
+                <strong>Hours Used:</strong> {viewingTrip.hours_used?.toFixed(2)}
+              </p>
+              <p>
+                <strong>Delivered Liters:</strong> {viewingTrip.delivered_liters}
+              </p>
+              <p>
+                <strong>Start Time:</strong>{" "}
+                {viewingTrip.start_time ? new Date(viewingTrip.start_time).toLocaleString() : "N/A"}
+              </p>
+              <p>
+                <strong>End Time:</strong> {viewingTrip.end_time ? new Date(viewingTrip.end_time).toLocaleString() : "N/A"}
+              </p>
+              <p>
+                <strong>Scheduled Time:</strong>{" "}
+                {viewingTrip.scheduled_time ? new Date(viewingTrip.scheduled_time).toLocaleString() : "N/A"}
+              </p>
               <div className="col-span-2">
                 <strong>Route:</strong>{" "}
                 <span className="break-words">
@@ -279,8 +339,12 @@ export function TripsTable({ searchQuery, filters }) {
               </div>
               <div className="col-span-2 text-right mt-2">
                 {viewingTrip.waze_url && (
-                  <a href={viewingTrip.waze_url} target="_blank" rel="noopener noreferrer"
-                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                  <a
+                    href={viewingTrip.waze_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                  >
                     Open in Waze
                   </a>
                 )}
